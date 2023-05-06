@@ -26,3 +26,22 @@ func TestSetRootLogger(t *testing.T) {
 	require.Equal(t, zerolog.TraceLevel, zerolog.GlobalLevel())
 	require.Equal(t, zerolog.TimeFormatUnixMs, zerolog.TimeFieldFormat)
 }
+
+func TestSetLevel(t *testing.T) {
+	_ = SetDefaultRootLogger()
+	require.Equal(t, zerolog.WarnLevel, zerolog.GlobalLevel())
+	SetLevel(zerolog.TraceLevel)
+	require.Equal(t, zerolog.TraceLevel, zerolog.GlobalLevel())
+}
+
+func TestSetTimeFieldFormat(t *testing.T) {
+	_ = SetDefaultRootLogger()
+	require.Equal(t, zerolog.TimeFormatUnix, zerolog.TimeFieldFormat)
+	setTimeFieldFormat(zerolog.TimeFormatUnixMs)
+	require.Equal(t, zerolog.TimeFormatUnixMs, zerolog.TimeFieldFormat)
+}
+
+func TestRootLogger(t *testing.T) {
+	logger := RootLogger()
+	require.NotNil(t, logger)
+}

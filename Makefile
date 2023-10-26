@@ -30,7 +30,7 @@ lint: vet staticcheck
 
 .PHONY: test
 test: testdeps
-	go test -v -covermode=atomic -coverprofile=coverage.out ./...
+	go test -v -coverpkg=./... -covermode=atomic -coverprofile=coverage.out ./...
 
 .PHONY: check
 check: test lint

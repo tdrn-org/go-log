@@ -1,0 +1,46 @@
+# Global log settings
+
+# Log level
+#
+#level: "trace"
+#level: "debug"
+#level: "info"
+level: "warn"
+#level: "error"
+#level: "fatal"
+#level: "panic"
+
+# Log timestamp
+#
+timestamp: true
+
+# Time field format
+#
+# Unix timestamp in seconds (default)
+timeFieldFormat: ""
+# Unix timestamp in milliseconds
+#timeFieldFormat: "UNIXMS"
+# Unix timestamp in microseconds
+#timeFieldFormat: "UNIXMICRO"
+# Unix timestamp in nanoseconds
+#timeFieldFormat: "UNIXNANO"
+
+console:
+  enabled: true
+  out: "stdout"
+  #out: "stderr"
+  color: "auto"
+  #color: "off"
+  #color: "on"
+
+file:
+  enabled: true
+  filename: "testdata/test.log"
+  max_size: 0
+  max_age: 0
+  max_backups: 0
+  compress: false
+    
+syslog:
+  enabled: true
+  cee: false

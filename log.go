@@ -5,46 +5,52 @@
 // This software may be modified and distributed under the terms
 // of the MIT license. See the LICENSE file for details.
 
+// Package log provides functionality for easy usage of the [github.com/rs/zerolog] logging framework.
 package log
 
 import (
+	"io"
 	"log"
-	"os"
 	"sync"
-	"time"
 
-	"github.com/mattn/go-isatty"
+	"github.com/hdecarne-github/go-log/console"
+	"github.com/hdecarne-github/go-log/file"
+	"github.com/hdecarne-github/go-log/syslog"
 	"github.com/rs/zerolog"
 )
 
-type Color int
-
-// Coloring mode
-const (
-	// Force coloring off
-	ColorOff Color = -1
-	// Auto-detect coloring
-	ColorAuto Color = 0
-	// Force coloring on
-	ColorOn Color = 1
-)
-
-var defaultLogger = NewConsoleLogger(os.Stderr, ColorAuto)
+var defaultLogger = newDefaultLogger(console.NewDefaultWriter())
+var defaultLevel = zerolog.InfoLevel
+var defaultTimeFieldFormat = zerolog.TimeFormatUnix
 var rootLogger = defaultLogger
 var rootLoggerMutex sync.RWMutex
 
-// RootLogger gets the currently set root logger
+func newDefaultLogger(w io.Writer) *zerolog.Logger {
+	return NewLogger(w, true)
+}
+
+// NewLogger creates a new [github.com/rs/zerolog.Logger] for the given options.
+func NewLogger(w io.Writer, timestamp bool) *zerolog.Logger {
+	logger := zerolog.New(w)
+	if timestamp {
+		logger = logger.With().Timestamp().Logger()
+	}
+	return &logger
+}
+
+// RootLogger gets the current root logger.
 func RootLogger() *zerolog.Logger {
 	rootLoggerMutex.RLock()
 	defer rootLoggerMutex.RUnlock()
 	return rootLogger
 }
 
-func SetDefaultRootLogger() *zerolog.Logger {
-	return SetRootLogger(defaultLogger, zerolog.WarnLevel, zerolog.TimeFormatUnix)
+// ResetRootLogger resets the root logger to it's default.
+func ResetRootLogger() *zerolog.Logger {
+	return SetRootLogger(defaultLogger, defaultLevel, defaultTimeFieldFormat)
 }
 
-// SetRootLogger sets a new root logger as well as log level and time field format
+// SetRootLogger sets a new root logger as well as log level and time field format.
 func SetRootLogger(logger *zerolog.Logger, level zerolog.Level, timeFieldFormat string) *zerolog.Logger {
 	rootLoggerMutex.Lock()
 	defer rootLoggerMutex.Unlock()
@@ -64,7 +70,22 @@ func SetRootLogger(logger *zerolog.Logger, level zerolog.Level, timeFieldFormat 
 	return rootLogger
 }
 
-// SetLevel sets the log level
+// Config provides a plugable interface for runtime logging configuration.
+type Config interface {
+	// Logger creates the [github.com/rs/zerolog.Logger]
+	Logger() *zerolog.Logger
+	// Level gets the global log level to use.
+	Level() zerolog.Level
+	// TimeFieldFormat gets the time field format to use.
+	TimeFieldFormat() string
+}
+
+// SetRootLoggerFromConfig sets a new root logger as well as log level and time field format using a [github.com/hdecarne-github/go-log/Config] interface.
+func SetRootLoggerFromConfig(config Config) *zerolog.Logger {
+	return SetRootLogger(config.Logger(), config.Level(), config.TimeFieldFormat())
+}
+
+// SetLevel sets the log level.
 func SetLevel(level zerolog.Level) {
 	rootLoggerMutex.Lock()
 	defer rootLoggerMutex.Unlock()
@@ -75,11 +96,11 @@ func setLevel(level zerolog.Level) {
 	previousLevel := zerolog.GlobalLevel()
 	if previousLevel != level {
 		zerolog.SetGlobalLevel(level)
-		rootLogger.Info().Msgf("adjust log level %s -> %s", previousLevel, level)
+		rootLogger.Info().Msgf("adjusting log level '%s' -> '%s'", previousLevel, level)
 	}
 }
 
-// SetTimeFieldFormat sets the time field format
+// SetTimeFieldFormat sets the time field format.
 func SetTimeFieldFormat(timeFieldFormat string) {
 	rootLoggerMutex.Lock()
 	defer rootLoggerMutex.Unlock()
@@ -90,29 +111,51 @@ func setTimeFieldFormat(timeFieldFormat string) {
 	previousTimeFieldFormat := zerolog.TimeFieldFormat
 	if previousTimeFieldFormat != timeFieldFormat {
 		zerolog.TimeFieldFormat = timeFieldFormat
-		rootLogger.Info().Msgf("adjust time field format %s -> %s", previousTimeFieldFormat, timeFieldFormat)
+		rootLogger.Info().Msgf("adjusting time field format '%s' -> '%s'", previousTimeFieldFormat, timeFieldFormat)
 	}
 }
 
-// NewConsoleLogger creates a new console logger
-func NewConsoleLogger(out *os.File, color Color) *zerolog.Logger {
-	writer := zerolog.ConsoleWriter{
-		Out:        out,
-		NoColor:    !colorFlag(out, color),
-		TimeFormat: time.RFC3339,
-	}
-	logger := zerolog.New(writer).With().Timestamp().Logger()
-	return &logger
+// YAMLConfig supports a YAML file based logging configuration.
+type YAMLConfig struct {
+	LevelOption           string                    `yaml:"level"`
+	TimestampOption       bool                      `yaml:"timestamp"`
+	TimeFieldFormatOption string                    `yaml:"timeFieldFormat"`
+	Console               console.YAMLConsoleConfig `yaml:"console"`
+	File                  file.YAMLFileConfig       `yaml:"file"`
+	Syslog                syslog.YAMLSyslogConfig   `yaml:"syslog"`
 }
 
-func colorFlag(out *os.File, color Color) bool {
-	switch color {
-	case ColorOff:
-		return false
-	case ColorAuto:
-		return isatty.IsTerminal(out.Fd()) || isatty.IsCygwinTerminal(out.Fd())
-	case ColorOn:
-		return true
+func (config *YAMLConfig) Logger() *zerolog.Logger {
+	writers := make([]io.Writer, 0)
+	if config.Console.EnabledOption {
+		writers = append(writers, config.Console.NewWriter())
 	}
-	return false
+	if config.File.EnabledOption {
+		writers = append(writers, config.File.NewWriter())
+	}
+	if config.Syslog.EnabledOption {
+		writers = append(writers, config.Syslog.NewWriter())
+	}
+	var logger *zerolog.Logger
+	switch len(writers) {
+	case 0:
+		logger = defaultLogger
+	case 1:
+		logger = NewLogger(writers[0], config.TimestampOption)
+	default:
+		logger = NewLogger(zerolog.MultiLevelWriter(writers...), config.TimestampOption)
+	}
+	return logger
+}
+
+func (config *YAMLConfig) Level() zerolog.Level {
+	level, err := zerolog.ParseLevel(config.LevelOption)
+	if err != nil {
+		return zerolog.WarnLevel
+	}
+	return level
+}
+
+func (config *YAMLConfig) TimeFieldFormat() string {
+	return config.TimeFieldFormatOption
 }

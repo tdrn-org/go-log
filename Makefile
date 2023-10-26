@@ -8,9 +8,9 @@ GOBIN ?= $(shell go env GOPATH)/bin
 deps:
 	go mod download -x
 
-.PHONE: testdeps
+.PHONY: testdeps
 testdeps: deps
-	go install honnef.co/go/tools/cmd/staticcheck@2023.1.3
+	go install honnef.co/go/tools/cmd/staticcheck@2023.1.6
 
 .PHONY: tidy
 tidy:
@@ -29,7 +29,7 @@ staticcheck: testdeps
 lint: vet staticcheck
 
 .PHONY: test
-test:
+test: testdeps
 	go test -v -covermode=atomic -coverprofile=coverage.out ./...
 
 .PHONY: check

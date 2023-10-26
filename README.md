@@ -1,4 +1,4 @@
-## Common Go code shared between my projects
+## Common Go logging code shared between my projects
 [![GoDoc](https://godoc.org/github.com/hdecarne-github/go-log?status.svg)](https://godoc.org/github.com/hdecarne-github/go-log)
 [![Build](https://github.com/hdecarne-github/go-log/actions/workflows/build.yml/badge.svg)](https://github.com/hdecarne-github/go-log/actions/workflows/build.yml)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=hdecarne-github_go-log&metric=coverage)](https://sonarcloud.io/summary/new_code?id=hdecarne-github_go-log)

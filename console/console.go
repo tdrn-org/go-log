@@ -39,7 +39,7 @@ func NewWriter(out *os.File, color Color, timeFormat string) io.Writer {
 	return &zerolog.ConsoleWriter{
 		Out:        out,
 		NoColor:    !colorFlag(out, color),
-		TimeFormat: time.RFC3339,
+		TimeFormat: timeFormat,
 	}
 }
 

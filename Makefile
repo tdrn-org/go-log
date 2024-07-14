@@ -10,12 +10,16 @@ deps:
 
 .PHONY: testdeps
 testdeps: deps
-	go install honnef.co/go/tools/cmd/staticcheck@2023.1.6
+	go install honnef.co/go/tools/cmd/staticcheck@2023.1.7
 
 .PHONY: tidy
 tidy:
 	go mod verify
 	go mod tidy
+
+.PHONY: test
+test: testdeps
+	go test -v -coverpkg=./... -covermode=atomic -coverprofile=coverage.out ./...
 
 .PHONY: vet
 vet: testdeps
@@ -25,15 +29,8 @@ vet: testdeps
 staticcheck: testdeps
 	$(GOBIN)/staticcheck ./...
 
-.PHONY: lint
-lint: vet staticcheck
-
-.PHONY: test
-test: testdeps
-	go test -v -coverpkg=./... -covermode=atomic -coverprofile=coverage.out ./...
-
 .PHONY: check
-check: test lint
+check: test vet staticcheck
 
 .PHONY: clean
 clean:

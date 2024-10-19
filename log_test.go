@@ -10,6 +10,7 @@ package log_test
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/hdecarne-github/go-log"
 	"github.com/hdecarne-github/go-log/console"
@@ -39,7 +40,7 @@ func TestSetLevel(t *testing.T) {
 
 func TestSetTimeFieldFormat(t *testing.T) {
 	_ = log.ResetRootLogger()
-	require.Equal(t, zerolog.TimeFormatUnix, zerolog.TimeFieldFormat)
+	require.Equal(t, time.RFC3339, zerolog.TimeFieldFormat)
 	log.SetTimeFieldFormat(zerolog.TimeFormatUnixMs)
 	require.Equal(t, zerolog.TimeFormatUnixMs, zerolog.TimeFieldFormat)
 }

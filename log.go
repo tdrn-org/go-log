@@ -12,6 +12,7 @@ import (
 	"io"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/hdecarne-github/go-log/console"
 	"github.com/hdecarne-github/go-log/file"
@@ -21,7 +22,7 @@ import (
 
 var defaultLogger = newDefaultLogger(console.NewDefaultWriter())
 var defaultLevel = zerolog.InfoLevel
-var defaultTimeFieldFormat = zerolog.TimeFormatUnix
+var defaultTimeFieldFormat = time.RFC3339
 var rootLogger = defaultLogger
 var rootLoggerMutex sync.RWMutex
 

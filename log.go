@@ -14,10 +14,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hdecarne-github/go-log/console"
-	"github.com/hdecarne-github/go-log/file"
-	"github.com/hdecarne-github/go-log/syslog"
 	"github.com/rs/zerolog"
+	"github.com/tdrn-org/go-log/console"
+	"github.com/tdrn-org/go-log/file"
+	"github.com/tdrn-org/go-log/syslog"
 )
 
 var defaultLogger = newDefaultLogger(console.NewDefaultWriter())
@@ -81,7 +81,7 @@ type Config interface {
 	TimeFieldFormat() string
 }
 
-// SetRootLoggerFromConfig sets a new root logger as well as log level and time field format using a [github.com/hdecarne-github/go-log/Config] interface.
+// SetRootLoggerFromConfig sets a new root logger as well as log level and time field format using a [github.com/tdrn-org/go-log/Config] interface.
 func SetRootLoggerFromConfig(config Config) *zerolog.Logger {
 	return SetRootLogger(config.Logger(), config.Level(), config.TimeFieldFormat())
 }

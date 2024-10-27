@@ -1,4 +1,4 @@
-module github.com/hdecarne-github/go-log
+module github.com/tdrn-org/go-log
 
 go 1.23
 

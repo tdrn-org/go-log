@@ -12,17 +12,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hdecarne-github/go-log"
-	"github.com/hdecarne-github/go-log/console"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
+	"github.com/tdrn-org/go-log"
+	"github.com/tdrn-org/go-log/console"
 	"gopkg.in/yaml.v3"
 )
 
 func TestResetRootLogger(t *testing.T) {
 	_ = log.ResetRootLogger()
 	require.Equal(t, zerolog.InfoLevel, zerolog.GlobalLevel())
-	require.Equal(t, zerolog.TimeFormatUnix, zerolog.TimeFieldFormat)
+	require.Equal(t, time.RFC3339, zerolog.TimeFieldFormat)
 }
 
 func TestSetRootLogger(t *testing.T) {

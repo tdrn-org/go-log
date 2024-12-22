@@ -21,7 +21,7 @@ import (
 
 func TestResetRootLogger(t *testing.T) {
 	_ = log.ResetRootLogger()
-	require.Equal(t, zerolog.InfoLevel, zerolog.GlobalLevel())
+	require.Equal(t, zerolog.WarnLevel, zerolog.GlobalLevel())
 	require.Equal(t, time.RFC3339, zerolog.TimeFieldFormat)
 }
 
@@ -33,7 +33,7 @@ func TestSetRootLogger(t *testing.T) {
 
 func TestSetLevel(t *testing.T) {
 	_ = log.ResetRootLogger()
-	require.Equal(t, zerolog.InfoLevel, zerolog.GlobalLevel())
+	require.Equal(t, zerolog.WarnLevel, zerolog.GlobalLevel())
 	log.SetLevel(zerolog.TraceLevel)
 	require.Equal(t, zerolog.TraceLevel, zerolog.GlobalLevel())
 }

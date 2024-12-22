@@ -21,7 +21,7 @@ import (
 )
 
 var defaultLogger = newDefaultLogger(console.NewDefaultWriter())
-var defaultLevel = zerolog.InfoLevel
+var defaultLevel = zerolog.WarnLevel
 var defaultTimeFieldFormat = time.RFC3339
 var rootLogger = defaultLogger
 var rootLoggerMutex sync.RWMutex
@@ -159,4 +159,8 @@ func (config *YAMLConfig) Level() zerolog.Level {
 
 func (config *YAMLConfig) TimeFieldFormat() string {
 	return config.TimeFieldFormatOption
+}
+
+func init() {
+	zerolog.SetGlobalLevel(defaultLevel)
 }

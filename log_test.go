@@ -31,6 +31,12 @@ func TestSetRootLogger(t *testing.T) {
 	require.Equal(t, zerolog.TimeFormatUnixMs, zerolog.TimeFieldFormat)
 }
 
+func TestRedirectRootLogger(t *testing.T) {
+	_ = log.RedirectRootLogger(os.Stderr, false)
+	require.Equal(t, zerolog.WarnLevel, zerolog.GlobalLevel())
+	require.Equal(t, time.RFC3339, zerolog.TimeFieldFormat)
+}
+
 func TestSetLevel(t *testing.T) {
 	_ = log.ResetRootLogger()
 	require.Equal(t, zerolog.WarnLevel, zerolog.GlobalLevel())

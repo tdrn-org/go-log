@@ -64,8 +64,6 @@ func SetRootLogger(logger *zerolog.Logger, level zerolog.Level, timeFieldFormat 
 			rootLogger.Info().Msg("root logger re-set")
 		}
 	}
-	stdlog.SetFlags(0)
-	stdlog.SetOutput(rootLogger)
 	setLevel(level)
 	setTimeFieldFormat(timeFieldFormat)
 	return rootLogger
@@ -74,6 +72,14 @@ func SetRootLogger(logger *zerolog.Logger, level zerolog.Level, timeFieldFormat 
 // RedirectRootLogger directs the root logger to the given [io.Writer] or optionally [zerolog.LevelWriter].
 func RedirectRootLogger(w io.Writer, timestamp bool) *zerolog.Logger {
 	return SetRootLogger(NewLogger(w, timestamp), defaultLevel, defaultTimeFieldFormat)
+}
+
+// RedirectStdLog directs the standard log to the root logger.
+func RedirectStdLog() {
+	rootLoggerMutex.Lock()
+	defer rootLoggerMutex.Unlock()
+	stdlog.SetFlags(0)
+	stdlog.SetOutput(rootLogger)
 }
 
 // Config provides a plugable interface for runtime logging configuration.

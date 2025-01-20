@@ -8,6 +8,7 @@
 package log_test
 
 import (
+	stdlog "log"
 	"os"
 	"testing"
 	"time"
@@ -35,6 +36,11 @@ func TestRedirectRootLogger(t *testing.T) {
 	_ = log.RedirectRootLogger(os.Stderr, false)
 	require.Equal(t, zerolog.WarnLevel, zerolog.GlobalLevel())
 	require.Equal(t, time.RFC3339, zerolog.TimeFieldFormat)
+}
+
+func TestRedirectStdLog(t *testing.T) {
+	log.RedirectStdLog()
+	require.Equal(t, 0, stdlog.Flags())
 }
 
 func TestSetLevel(t *testing.T) {

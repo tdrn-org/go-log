@@ -48,3 +48,18 @@ func TestFileLogWithoutLimit(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, entries, 1)
 }
+
+func TestFileLogInvalidFile(t *testing.T) {
+	logdir := t.TempDir()
+	config := log.Config{
+		Level:         slog.LevelDebug.String(),
+		Target:        log.TargetFileText,
+		FileName:      filepath.Join(logdir, "."),
+		FileSizeLimit: 0,
+	}
+	logger, _ := config.GetLogger()
+	generateLogs(logger, slog.LevelInfo, slog.LevelError, 10)
+	entries, err := os.ReadDir(logdir)
+	require.NoError(t, err)
+	require.Len(t, entries, 0)
+}

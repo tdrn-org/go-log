@@ -1,4 +1,4 @@
-// log_test.go
+// file_test.go
 //
 // Copyright (C) 2023-2025 Holger de Carne
 //

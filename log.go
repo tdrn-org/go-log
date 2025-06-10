@@ -13,7 +13,6 @@ import (
 	"log/slog"
 	"os"
 	"strings"
-	"sync"
 )
 
 const defaultLevel slog.Level = slog.LevelInfo
@@ -195,38 +194,4 @@ func (c *Config) getJSONHandler(leveler slog.Leveler) (slog.Handler, slog.Levele
 func (c *Config) GetLogger() (*slog.Logger, slog.Leveler) {
 	h, l := c.GetHandler()
 	return slog.New(h), l
-}
-
-var messageBuilderPool = sync.Pool{
-	New: func() any { return &messageBuilder{} },
-}
-
-func getMessageBuilder() *messageBuilder {
-	return messageBuilderPool.Get().(*messageBuilder)
-}
-
-type messageBuilder struct {
-	buffer strings.Builder
-}
-
-func (b *messageBuilder) release() {
-	b.buffer.Reset()
-	messageBuilderPool.Put(b)
-}
-
-func (b *messageBuilder) appendRune(r rune) *messageBuilder {
-	_, _ = b.buffer.WriteRune(r)
-	return b
-}
-
-func (b *messageBuilder) appendString(s string) *messageBuilder {
-	if s != "" {
-		_, _ = b.buffer.WriteString(s)
-	}
-	return b
-}
-
-func (b *messageBuilder) write(w io.Writer) (int, error) {
-	_, _ = b.buffer.WriteRune('\n')
-	return w.Write([]byte(b.buffer.String()))
 }

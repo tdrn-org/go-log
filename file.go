@@ -95,8 +95,14 @@ func (w *fileWriter) rotateFileName() string {
 		return w.fileName
 	}
 	splitLen := len(w.fileName) - len(filepath.Ext(w.fileName))
-	timestamp := time.Now().Format(time.RFC3339Nano)
-	return fmt.Sprintf("%s-%s%s", w.fileName[:splitLen], timestamp, w.fileName[splitLen:])
+	timestamp := time.Now().Format("20060102")
+	for i := 1; ; i++ {
+		fileName := fmt.Sprintf("%s-%s-%d%s", w.fileName[:splitLen], timestamp, i, w.fileName[splitLen:])
+		_, err := os.Stat(fileName)
+		if os.IsNotExist(err) {
+			return fileName
+		}
+	}
 }
 
 func (w *fileWriter) log(level slog.Level, msg string, args ...any) {

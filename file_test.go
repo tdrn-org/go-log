@@ -9,9 +9,11 @@ package log_test
 
 import (
 	"log/slog"
+	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/tdrn-org/go-log"
 )
 
@@ -25,7 +27,10 @@ func TestFileLogWithLimit(t *testing.T) {
 		FileSizeLimit: 1024,
 	}
 	logger, _ := config.GetLogger()
-	generateLogs(logger, slog.LevelInfo, slog.LevelError, 1000)
+	generateLogs(logger, slog.LevelInfo, slog.LevelError, 100)
+	entries, err := os.ReadDir(logdir)
+	require.NoError(t, err)
+	require.Len(t, entries, 13)
 }
 
 func TestFileLogWithoutLimit(t *testing.T) {
@@ -38,5 +43,8 @@ func TestFileLogWithoutLimit(t *testing.T) {
 		FileSizeLimit: 0,
 	}
 	logger, _ := config.GetLogger()
-	generateLogs(logger, slog.LevelInfo, slog.LevelError, 1000)
+	generateLogs(logger, slog.LevelInfo, slog.LevelError, 100)
+	entries, err := os.ReadDir(logdir)
+	require.NoError(t, err)
+	require.Len(t, entries, 1)
 }

@@ -95,7 +95,7 @@ func (w *fileWriter) rotateFileName() string {
 		return w.fileName
 	}
 	splitLen := len(w.fileName) - len(filepath.Ext(w.fileName))
-	timestamp := time.Now().Format("20060102150405")
+	timestamp := time.Now().Format(time.RFC3339Nano)
 	return fmt.Sprintf("%s-%s%s", w.fileName[:splitLen], timestamp, w.fileName[splitLen:])
 }
 

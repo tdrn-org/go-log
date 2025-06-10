@@ -1,6 +1,6 @@
 // log_test.go
 //
-// Copyright (C) 2023-2024 Holger de Carne
+// Copyright (C) 2023-2025 Holger de Carne
 //
 // This software may be modified and distributed under the terms
 // of the MIT license. See the LICENSE file for details.
@@ -8,65 +8,106 @@
 package log_test
 
 import (
-	stdlog "log"
+	"context"
+	"log/slog"
 	"os"
 	"testing"
-	"time"
 
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	"github.com/tdrn-org/go-log"
-	"github.com/tdrn-org/go-log/console"
-	"gopkg.in/yaml.v3"
 )
 
-func TestResetRootLogger(t *testing.T) {
-	_ = log.ResetRootLogger()
-	require.Equal(t, zerolog.WarnLevel, zerolog.GlobalLevel())
-	require.Equal(t, time.RFC3339, zerolog.TimeFieldFormat)
+func TestConfigGetLevel(t *testing.T) {
+	config := &log.Config{}
+	require.Equal(t, slog.LevelInfo, config.GetLevel())
+
+	config.Level = slog.LevelDebug.String()
+	require.Equal(t, slog.LevelDebug, config.GetLevel())
+
+	config.Level = slog.LevelInfo.String()
+	require.Equal(t, slog.LevelInfo, config.GetLevel())
+
+	config.Level = slog.LevelWarn.String()
+	require.Equal(t, slog.LevelWarn, config.GetLevel())
+
+	config.Level = slog.LevelError.String()
+	require.Equal(t, slog.LevelError, config.GetLevel())
+
+	config.Level = "undefined"
+	require.Equal(t, slog.LevelInfo, config.GetLevel())
 }
 
-func TestSetRootLogger(t *testing.T) {
-	_ = log.SetRootLogger(log.NewLogger(console.NewDefaultWriter(), true), zerolog.TraceLevel, zerolog.TimeFormatUnixMs)
-	require.Equal(t, zerolog.TraceLevel, zerolog.GlobalLevel())
-	require.Equal(t, zerolog.TimeFormatUnixMs, zerolog.TimeFieldFormat)
+func TestConfigGetWriter(t *testing.T) {
+	config := &log.Config{}
+	require.Equal(t, os.Stderr, config.GetWriter())
+
+	config.Target = log.TargetStdout
+	require.Equal(t, os.Stdout, config.GetWriter())
+
+	config.Target = log.TargetStdoutText
+	require.Equal(t, os.Stdout, config.GetWriter())
+
+	config.Target = log.TargetStdoutJSON
+	require.Equal(t, os.Stdout, config.GetWriter())
+
+	config.Target = log.TargetStderr
+	require.Equal(t, os.Stderr, config.GetWriter())
+
+	config.Target = log.TargetStderrText
+	require.Equal(t, os.Stderr, config.GetWriter())
+
+	config.Target = log.TargetStderrJSON
+	require.Equal(t, os.Stderr, config.GetWriter())
+
+	config.Target = log.Target("undefined")
+	require.Equal(t, os.Stderr, config.GetWriter())
 }
 
-func TestRedirectRootLogger(t *testing.T) {
-	_ = log.RedirectRootLogger(os.Stderr, false)
-	require.Equal(t, zerolog.WarnLevel, zerolog.GlobalLevel())
-	require.Equal(t, time.RFC3339, zerolog.TimeFieldFormat)
+func TestConfigGetHandler(t *testing.T) {
+	plainHandler := log.NewPlainHandler(os.Stderr, nil)
+	textHandler := slog.NewTextHandler(os.Stderr, nil)
+	jsonHandler := slog.NewJSONHandler(os.Stderr, nil)
+
+	config := &log.Config{}
+	handler, _ := config.GetHandler()
+	require.IsType(t, textHandler, handler)
+
+	config.Target = log.TargetStdout
+	handler, _ = config.GetHandler()
+	require.IsType(t, plainHandler, handler)
+
+	config.Target = log.TargetStdoutText
+	handler, _ = config.GetHandler()
+	require.IsType(t, textHandler, handler)
+
+	config.Target = log.TargetStdoutJSON
+	handler, _ = config.GetHandler()
+	require.IsType(t, jsonHandler, handler)
+
+	config.Target = log.TargetStderr
+	handler, _ = config.GetHandler()
+	require.IsType(t, plainHandler, handler)
+
+	config.Target = log.TargetStderrText
+	handler, _ = config.GetHandler()
+	require.IsType(t, textHandler, handler)
+
+	config.Target = log.TargetStderrJSON
+	handler, _ = config.GetHandler()
+	require.IsType(t, jsonHandler, handler)
+
+	config.Target = log.TargetFileText
+	handler, _ = config.GetHandler()
+	require.IsType(t, textHandler, handler)
+
+	config.Target = log.TargetFileJSON
+	handler, _ = config.GetHandler()
+	require.IsType(t, jsonHandler, handler)
 }
 
-func TestRedirectStdLog(t *testing.T) {
-	log.RedirectStdLog()
-	require.Equal(t, 0, stdlog.Flags())
-}
-
-func TestSetLevel(t *testing.T) {
-	_ = log.ResetRootLogger()
-	require.Equal(t, zerolog.WarnLevel, zerolog.GlobalLevel())
-	log.SetLevel(zerolog.TraceLevel)
-	require.Equal(t, zerolog.TraceLevel, zerolog.GlobalLevel())
-}
-
-func TestSetTimeFieldFormat(t *testing.T) {
-	_ = log.ResetRootLogger()
-	require.Equal(t, time.RFC3339, zerolog.TimeFieldFormat)
-	log.SetTimeFieldFormat(zerolog.TimeFormatUnixMs)
-	require.Equal(t, zerolog.TimeFormatUnixMs, zerolog.TimeFieldFormat)
-}
-
-func TestRootLogger(t *testing.T) {
-	logger := log.RootLogger()
-	require.NotNil(t, logger)
-}
-
-func TestConfig(t *testing.T) {
-	configBytes, err := os.ReadFile("testdata/log.yaml")
-	require.NoError(t, err)
-	var config log.YAMLConfig
-	err = yaml.Unmarshal(configBytes, &config)
-	require.NoError(t, err)
-	log.SetRootLoggerFromConfig(&config)
+func generateLogs(logger *slog.Logger, min slog.Level, max slog.Level, n int) {
+	for i := range n {
+		level := slog.Level(int(min) + (i % (int(max-min) + 1)))
+		logger.Log(context.Background(), level, "test message", slog.Int("index", i))
+	}
 }

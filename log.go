@@ -1,177 +1,232 @@
 // log.go
 //
-// Copyright (C) 2023-2024 Holger de Carne
+// Copyright (C) 2023-2025 Holger de Carne
 //
 // This software may be modified and distributed under the terms
 // of the MIT license. See the LICENSE file for details.
 
-// Package log provides functionality for easy usage of the [github.com/rs/zerolog] logging framework.
+// Package log provides functionality for easy setup and integration of [log/slog] for application logging.
 package log
 
 import (
 	"io"
-	stdlog "log"
+	"log/slog"
+	"os"
+	"strings"
 	"sync"
-	"time"
-
-	"github.com/rs/zerolog"
-	"github.com/tdrn-org/go-log/console"
-	"github.com/tdrn-org/go-log/file"
-	"github.com/tdrn-org/go-log/syslog"
 )
 
-var defaultLogger = newDefaultLogger(console.NewDefaultWriter())
-var defaultLevel = zerolog.WarnLevel
-var defaultTimeFieldFormat = time.RFC3339
-var rootLogger = defaultLogger
-var rootLoggerMutex sync.RWMutex
+const defaultLevel slog.Level = slog.LevelInfo
 
-func newDefaultLogger(w io.Writer) *zerolog.Logger {
-	return NewLogger(w, true)
+var emptyAttr = slog.Attr{}
+var noAttrs = []slog.Attr{}
+var noGroups = []string{}
+
+// Target defines a logging destination as well as the [slog.Handler] to use
+type Target string
+
+const (
+	// Log to stdout using the [PlainHandler]
+	TargetStdout Target = "stdout"
+	// Log to stdout using the [slog.TextHandler]
+	TargetStdoutText Target = "text@stdout"
+	// Log to stdout using the [slog.JSONHandler]
+	TargetStdoutJSON Target = "json@stdout"
+	// Log to stderr using the [PlainHandler]
+	TargetStderr Target = "stderr"
+	// Log to stderr using the [slog.TextHandler]
+	TargetStderrText Target = "text@stderr"
+	// Log to stderr using the [slog.JSONHandler]
+	TargetStderrJSON Target = "json@stderr"
+	// Log to a file using the [slog.TextHandler]
+	TargetFileText Target = "text@file"
+	// Log to a file using the [slog.JSONHandler]
+	TargetFileJSON Target = "json@file"
+)
+
+// Color mode for console logging
+type Color int
+
+const (
+	// Auto-detect coloring
+	ColorAuto Color = -1
+	// Force coloring off
+	ColorOff Color = 0
+	// Force coloring on
+	ColorOn Color = 1
+)
+
+// Config defines a complete application logging setup
+type Config struct {
+	// Level defines the initial log level to accept
+	Level string
+	// AddSource controls whether to log source file and line
+	AddSource bool
+	// Target defines the logging destination as well as the
+	// [slog.Handler] to use
+	Target Target
+	// Color sets the color mode of the [PlainHandler] (if used)
+	Color Color
+	// FileName defines the file to log into (for file targets)
+	FileName string
+	// FileSizeLimit defines the file size to rotate after
+	// (values <= 0 disable rotation)
+	FileSizeLimit int64
 }
 
-// NewLogger creates a new [github.com/rs/zerolog.Logger] for the given options.
-func NewLogger(w io.Writer, timestamp bool) *zerolog.Logger {
-	logger := zerolog.New(w)
-	if timestamp {
-		logger = logger.With().Timestamp().Logger()
+// GetLevel determines the [slog.Level] defined by this configuration.
+//
+// This function always returns a result, falling back to [slog.LevelInfo]
+// in case the configuration is not conclusive.
+func (c *Config) GetLevel() slog.Level {
+	switch strings.ToLower(c.Level) {
+	case "debug":
+		return slog.LevelDebug
+	case "info":
+		return slog.LevelInfo
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	case "":
+		return defaultLevel
 	}
-	return &logger
+	slog.Warn("unrecognized log level", "level", slog.StringValue(c.Level))
+	return defaultLevel
 }
 
-// RootLogger gets the current root logger.
-func RootLogger() *zerolog.Logger {
-	rootLoggerMutex.RLock()
-	defer rootLoggerMutex.RUnlock()
-	return rootLogger
-}
-
-// ResetRootLogger resets the root logger to it's default.
-func ResetRootLogger() *zerolog.Logger {
-	return SetRootLogger(defaultLogger, defaultLevel, defaultTimeFieldFormat)
-}
-
-// SetRootLogger sets a new root logger as well as log level and time field format.
-func SetRootLogger(logger *zerolog.Logger, level zerolog.Level, timeFieldFormat string) *zerolog.Logger {
-	rootLoggerMutex.Lock()
-	defer rootLoggerMutex.Unlock()
-	if rootLogger != logger {
-		previousRootLogger := rootLogger
-		rootLogger = logger
-		if previousRootLogger == defaultLogger {
-			rootLogger.Info().Msg("root logger set")
-		} else {
-			rootLogger.Info().Msg("root logger re-set")
-		}
+// GetWriter determines the [io.Writer] defined by this configuration.
+//
+// This function always returns a result, falling back to [os.Stderr]
+// in case the configuration is not conclusive.
+func (c *Config) GetWriter() io.Writer {
+	switch c.Target {
+	case TargetStdout:
+		return os.Stdout
+	case TargetStdoutText:
+		return os.Stdout
+	case TargetStdoutJSON:
+		return os.Stdout
+	case TargetStderr:
+		return os.Stderr
+	case TargetStderrText:
+		return os.Stderr
+	case TargetStderrJSON:
+		return os.Stderr
+	case TargetFileText:
+		return &fileWriter{fileName: c.FileName, fileSizeLimit: c.FileSizeLimit}
+	case TargetFileJSON:
+		return &fileWriter{fileName: c.FileName, fileSizeLimit: c.FileSizeLimit}
+	case "":
+		return os.Stderr
 	}
-	setLevel(level)
-	setTimeFieldFormat(timeFieldFormat)
-	return rootLogger
+	slog.Warn("unrecognized target option", "target", slog.StringValue(string(c.Target)))
+	return os.Stderr
 }
 
-// RedirectRootLogger directs the root logger to the given [io.Writer] or optionally [zerolog.LevelWriter].
-func RedirectRootLogger(w io.Writer, timestamp bool) *zerolog.Logger {
-	return SetRootLogger(NewLogger(w, timestamp), defaultLevel, defaultTimeFieldFormat)
-}
-
-// RedirectStdLog directs the standard log to the root logger.
-func RedirectStdLog() {
-	rootLoggerMutex.Lock()
-	defer rootLoggerMutex.Unlock()
-	stdlog.SetFlags(0)
-	stdlog.SetOutput(rootLogger)
-}
-
-// Config provides a plugable interface for runtime logging configuration.
-type Config interface {
-	// Logger creates the [github.com/rs/zerolog.Logger]
-	Logger() *zerolog.Logger
-	// Level gets the global log level to use.
-	Level() zerolog.Level
-	// TimeFieldFormat gets the time field format to use.
-	TimeFieldFormat() string
-}
-
-// SetRootLoggerFromConfig sets a new root logger as well as log level and time field format using a [github.com/tdrn-org/go-log/Config] interface.
-func SetRootLoggerFromConfig(config Config) *zerolog.Logger {
-	return SetRootLogger(config.Logger(), config.Level(), config.TimeFieldFormat())
-}
-
-// SetLevel sets the log level.
-func SetLevel(level zerolog.Level) {
-	rootLoggerMutex.Lock()
-	defer rootLoggerMutex.Unlock()
-	setLevel(level)
-}
-
-func setLevel(level zerolog.Level) {
-	previousLevel := zerolog.GlobalLevel()
-	if previousLevel != level {
-		zerolog.SetGlobalLevel(level)
-		rootLogger.Info().Msgf("adjusting log level '%s' -> '%s'", previousLevel, level)
+// GetHandler determines the [slog.Handler] defined by this configuration.
+//
+// This function always returns a result, falling back to [slog.TextHandler]
+// in case the configuration is not conclusive.
+// Beside the handler this function also returns the [slog.Leveler] instance
+// assigned to it, enabling dynamic changing of the log level.
+func (c *Config) GetHandler() (slog.Handler, slog.Leveler) {
+	leveler := &slog.LevelVar{}
+	leveler.Set(c.GetLevel())
+	switch c.Target {
+	case TargetStdout:
+		return c.getPlainHandler(leveler)
+	case TargetStdoutText:
+		return c.getTextHandler(leveler)
+	case TargetStdoutJSON:
+		return c.getJSONHandler(leveler)
+	case TargetStderr:
+		return c.getPlainHandler(leveler)
+	case TargetStderrText:
+		return c.getTextHandler(leveler)
+	case TargetStderrJSON:
+		return c.getJSONHandler(leveler)
+	case TargetFileText:
+		return c.getTextHandler(leveler)
+	case TargetFileJSON:
+		return c.getJSONHandler(leveler)
+	case "":
+		return c.getTextHandler(leveler)
 	}
+	slog.Warn("unrecognized target option", "target", slog.StringValue(string(c.Target)))
+	return c.getTextHandler(leveler)
 }
 
-// SetTimeFieldFormat sets the time field format.
-func SetTimeFieldFormat(timeFieldFormat string) {
-	rootLoggerMutex.Lock()
-	defer rootLoggerMutex.Unlock()
-	setTimeFieldFormat(timeFieldFormat)
-}
-
-func setTimeFieldFormat(timeFieldFormat string) {
-	previousTimeFieldFormat := zerolog.TimeFieldFormat
-	if previousTimeFieldFormat != timeFieldFormat {
-		zerolog.TimeFieldFormat = timeFieldFormat
-		rootLogger.Info().Msgf("adjusting time field format '%s' -> '%s'", previousTimeFieldFormat, timeFieldFormat)
+func (c *Config) getPlainHandler(leveler slog.Leveler) (slog.Handler, slog.Leveler) {
+	w := c.GetWriter()
+	opts := &PlainHandlerOptions{
+		HandlerOptions: slog.HandlerOptions{
+			AddSource: c.AddSource,
+			Level:     leveler,
+		},
+		Color: c.Color,
 	}
+	return NewPlainHandler(w, opts), leveler
 }
 
-// YAMLConfig supports a YAML file based logging configuration.
-type YAMLConfig struct {
-	LevelOption           string                    `yaml:"level"`
-	TimestampOption       bool                      `yaml:"timestamp"`
-	TimeFieldFormatOption string                    `yaml:"timeFieldFormat"`
-	Console               console.YAMLConsoleConfig `yaml:"console"`
-	File                  file.YAMLFileConfig       `yaml:"file"`
-	Syslog                syslog.YAMLSyslogConfig   `yaml:"syslog"`
+func (c *Config) getTextHandler(leveler slog.Leveler) (slog.Handler, slog.Leveler) {
+	w := c.GetWriter()
+	opts := &slog.HandlerOptions{
+		AddSource: c.AddSource,
+		Level:     leveler,
+	}
+	return slog.NewTextHandler(w, opts), leveler
 }
 
-func (config *YAMLConfig) Logger() *zerolog.Logger {
-	writers := make([]io.Writer, 0)
-	if config.Console.EnabledOption {
-		writers = append(writers, config.Console.NewWriter())
+func (c *Config) getJSONHandler(leveler slog.Leveler) (slog.Handler, slog.Leveler) {
+	w := c.GetWriter()
+	opts := &slog.HandlerOptions{
+		AddSource: c.AddSource,
+		Level:     leveler,
 	}
-	if config.File.EnabledOption {
-		writers = append(writers, config.File.NewWriter())
-	}
-	if config.Syslog.EnabledOption {
-		writers = append(writers, config.Syslog.NewWriter())
-	}
-	var logger *zerolog.Logger
-	switch len(writers) {
-	case 0:
-		logger = defaultLogger
-	case 1:
-		logger = NewLogger(writers[0], config.TimestampOption)
-	default:
-		logger = NewLogger(zerolog.MultiLevelWriter(writers...), config.TimestampOption)
-	}
-	return logger
+	return slog.NewJSONHandler(w, opts), leveler
 }
 
-func (config *YAMLConfig) Level() zerolog.Level {
-	level, err := zerolog.ParseLevel(config.LevelOption)
-	if err != nil {
-		return zerolog.WarnLevel
+// GetLogger determines the [slog.Logger] defined by this configuration.
+//
+// This function simply wraps [GetHandler] into a [slog.New] call.
+// Beside the logger this function also returns the [slog.Leveler] instance
+// assigned to it, enabling dynamic changing of the log level.
+func (c *Config) GetLogger() (*slog.Logger, slog.Leveler) {
+	h, l := c.GetHandler()
+	return slog.New(h), l
+}
+
+var messageBuilderPool = sync.Pool{
+	New: func() any { return &messageBuilder{} },
+}
+
+func getMessageBuilder() *messageBuilder {
+	return messageBuilderPool.Get().(*messageBuilder)
+}
+
+type messageBuilder struct {
+	buffer strings.Builder
+}
+
+func (b *messageBuilder) release() {
+	b.buffer.Reset()
+	messageBuilderPool.Put(b)
+}
+
+func (b *messageBuilder) appendRune(r rune) *messageBuilder {
+	_, _ = b.buffer.WriteRune(r)
+	return b
+}
+
+func (b *messageBuilder) appendString(s string) *messageBuilder {
+	if s != "" {
+		_, _ = b.buffer.WriteString(s)
 	}
-	return level
+	return b
 }
 
-func (config *YAMLConfig) TimeFieldFormat() string {
-	return config.TimeFieldFormatOption
-}
-
-func init() {
-	zerolog.SetGlobalLevel(defaultLevel)
+func (b *messageBuilder) write(w io.Writer) (int, error) {
+	_, _ = b.buffer.WriteRune('\n')
+	return w.Write([]byte(b.buffer.String()))
 }

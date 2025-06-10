@@ -24,13 +24,13 @@ func TestFileLogWithLimit(t *testing.T) {
 		Target:        log.TargetFileText,
 		AddSource:     true,
 		FileName:      filepath.Join(logdir, "with-limit.log"),
-		FileSizeLimit: 1024,
+		FileSizeLimit: 4000,
 	}
 	logger, _ := config.GetLogger()
 	generateLogs(logger, slog.LevelInfo, slog.LevelError, 100)
 	entries, err := os.ReadDir(logdir)
 	require.NoError(t, err)
-	require.Len(t, entries, 13)
+	require.Len(t, entries, 4)
 }
 
 func TestFileLogWithoutLimit(t *testing.T) {

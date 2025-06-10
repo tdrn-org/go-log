@@ -9,7 +9,9 @@ package log
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -25,6 +27,7 @@ type fileWriter struct {
 	fileSizeLimit int64
 	mutex         sync.Mutex
 	file          *os.File
+	lastErr       error
 }
 
 func (w *fileWriter) Write(b []byte) (int, error) {
@@ -33,13 +36,17 @@ func (w *fileWriter) Write(b []byte) (int, error) {
 	// open file, if needed
 	err := w.openIfNeeded("")
 	if err != nil {
-		w.log(slog.LevelWarn, "failed to open log file", slog.String("file", w.fileName), slog.Any("err", err))
+		if w.recordLastErrIfNeeded(err) {
+			w.log(slog.LevelWarn, "failed to open log file", slog.String("file", w.fileName), slog.Any("error", err))
+		}
 		return os.Stderr.Write(b)
 	}
 	// rotate, if needed
 	err = w.rotateIfNeeded()
 	if err != nil {
-		w.log(slog.LevelWarn, "failed to rotate log file", slog.String("file", w.fileName), slog.Any("err", err))
+		if w.recordLastErrIfNeeded(err) {
+			w.log(slog.LevelWarn, "failed to rotate log file", slog.String("file", w.fileName), slog.Any("error", err))
+		}
 		return os.Stderr.Write(b)
 	}
 	// write (and close if failing, to retry on next write)
@@ -47,10 +54,29 @@ func (w *fileWriter) Write(b []byte) (int, error) {
 	if err != nil {
 		_ = w.file.Close()
 		w.file = nil
-		w.log(slog.LevelWarn, "failed to write to log file", slog.String("file", w.fileName), slog.Any("err", err))
+		if w.recordLastErrIfNeeded(err) {
+			w.log(slog.LevelWarn, "failed to write to log file", slog.String("file", w.fileName), slog.Any("error", err))
+		}
 		return os.Stderr.Write(b)
 	}
 	return n, err
+}
+
+func (w *fileWriter) recordLastErrIfNeeded(err error) bool {
+	if w.lastErr == nil {
+		w.lastErr = err
+		return true
+	}
+	lastPathErr, ok1 := w.lastErr.(*fs.PathError)
+	pathErr, ok2 := err.(*fs.PathError)
+	if ok1 && ok2 && *lastPathErr == *pathErr {
+		return false
+	}
+	if !errors.Is(w.lastErr, err) {
+		w.lastErr = err
+		return true
+	}
+	return false
 }
 
 func (w *fileWriter) openIfNeeded(fileName string) error {

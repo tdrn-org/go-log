@@ -18,7 +18,6 @@ import (
 const defaultLevel slog.Level = slog.LevelInfo
 
 var emptyAttr = slog.Attr{}
-var noAttrs = []slog.Attr{}
 var noGroups = []string{}
 
 // Target defines a logging destination as well as the [slog.Handler] to use
@@ -194,4 +193,44 @@ func (c *Config) getJSONHandler(leveler slog.Leveler) (slog.Handler, slog.Levele
 func (c *Config) GetLogger() (*slog.Logger, slog.Leveler) {
 	h, l := c.GetHandler()
 	return slog.New(h), l
+}
+
+// Init sets the default logger to [TargetStdout] as well as the requested
+// log level.
+//
+// The log level is derived from the given command line arguments
+// as well as the given command flag to log level map.
+// If the map is nil, the following default mapping is used:
+//
+//	'-v', '--verbose': [slog.LevelInfo].
+//
+//	'-d', '--debug' [slog.LevelDebug].
+//
+// If no command flag matches, the [slog.LevelWarning] is used.
+func Init(args []string, flags map[string]slog.Level) {
+
+	init := &Config{
+		Level:  slog.LevelWarn.String(),
+		Target: TargetStdout,
+		Color:  ColorAuto,
+	}
+	for _, arg := range args {
+		if flags != nil {
+			level, ok := flags[arg]
+			if !ok {
+				continue
+			}
+			init.Level = level.String()
+		} else {
+			switch arg {
+			case "-v", "--verbose":
+				init.Level = slog.LevelInfo.String()
+			case "-d", "--debug":
+				init.Level = slog.LevelDebug.String()
+			}
+		}
+	}
+	logger, _ := init.GetLogger()
+	slog.SetDefault(logger)
+	slog.SetLogLoggerLevel(init.GetLevel())
 }

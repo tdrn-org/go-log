@@ -46,5 +46,7 @@ func TestPlainHandler(t *testing.T) {
 		Color: log.ColorOn,
 	})
 	logger := slog.New(h)
+	logger = logger.With(slog.Group("test", slog.String("name", "TestPlainHandler")))
+	logger = logger.WithGroup("generate")
 	generateLogs(logger, slog.LevelDebug, slog.LevelError+1, 100)
 }

@@ -31,11 +31,11 @@ type PlainHandlerOptions struct {
 // PlainHandler provides a simple plain log format with optional
 // support for color formatting.
 type PlainHandler struct {
-	w      io.Writer
-	opts   slog.HandlerOptions
-	ansi   bool
-	attrs  []slog.Attr
-	groups []string
+	w               io.Writer
+	opts            slog.HandlerOptions
+	ansi            bool
+	prerenderdAttrs [][]byte
+	groups          []string
 }
 
 // NewPlainHandler creates a new [PlainHandler] using the given writer
@@ -53,11 +53,11 @@ func NewPlainHandler(w io.Writer, opts *PlainHandlerOptions) *PlainHandler {
 		ansi = ok && (isatty.IsTerminal(file.Fd()) || isatty.IsCygwinTerminal(file.Fd()))
 	}
 	return &PlainHandler{
-		w:      w,
-		opts:   handlerOpts.HandlerOptions,
-		ansi:   ansi,
-		attrs:  noAttrs,
-		groups: noGroups,
+		w:               w,
+		opts:            handlerOpts.HandlerOptions,
+		ansi:            ansi,
+		prerenderdAttrs: [][]byte{},
+		groups:          noGroups,
 	}
 }
 
@@ -70,7 +70,7 @@ func (h *PlainHandler) Enabled(_ context.Context, level slog.Level) bool {
 }
 
 func (h *PlainHandler) Handle(_ context.Context, record slog.Record) error {
-	builder := getMessageBuilder()
+	builder := getMessageBuilder(h.groups)
 	defer builder.release()
 	ansi := h.ansiEscapesForLevel(record.Level)
 	if h.opts.ReplaceAttr == nil {
@@ -90,18 +90,6 @@ func (h *PlainHandler) Handle(_ context.Context, record slog.Record) error {
 		builder.appendRune(' ')
 		builder.appendString(ansi.messageEscape)
 		builder.appendString(record.Message)
-		record.Attrs(func(attr slog.Attr) bool {
-			if !attr.Equal(emptyAttr) {
-				builder.appendRune(' ')
-				builder.appendString(ansi.tagEscape)
-				builder.appendString(attr.Key)
-				builder.appendRune('=')
-				builder.appendString(ansi.defaultEscape)
-				builder.appendString(attr.Value.String())
-			}
-			return true
-		})
-		builder.appendString(ansi.resetEscape)
 	} else {
 		if !record.Time.IsZero() {
 			timeValue := record.Time.Round(0)
@@ -127,33 +115,36 @@ func (h *PlainHandler) Handle(_ context.Context, record slog.Record) error {
 			builder.appendString(ansi.messageEscape)
 			h.appendAttr(builder, attr)
 		})
-		record.Attrs(func(attr slog.Attr) bool {
-			h.handleAttr(h.groups, attr, func(attr slog.Attr) {
-				builder.appendRune(' ')
-				builder.appendString(ansi.tagEscape)
-				builder.appendString(attr.Key)
-				builder.appendRune('=')
-				builder.appendString(ansi.defaultEscape)
-				builder.appendString(attr.Value.String())
-			})
-			return true
-		})
-		builder.appendString(ansi.resetEscape)
 	}
+	for _, prerenderedAttr := range h.prerenderdAttrs {
+		builder.appendBytes(prerenderedAttr)
+	}
+	record.Attrs(builder.attrs(func(attr slog.Attr) bool {
+		h.handleAttr(builder.groups(), attr, func(attr slog.Attr) {
+			builder.appendRune(' ')
+			builder.appendString(ansi.tagEscape)
+			builder.appendString(builder.groupPath())
+			builder.appendString(attr.Key)
+			builder.appendRune('=')
+			builder.appendString(ansi.defaultEscape)
+			builder.appendString(attr.Value.String())
+		})
+		return true
+	}))
+	builder.appendString(ansi.resetEscape)
 	_, err := builder.write(h.w)
 	return err
 }
 
 func (h *PlainHandler) handleAttr(groups []string, attr slog.Attr, handle func(attr slog.Attr)) {
-	if attr.Equal(emptyAttr) {
-		return
-	}
 	attr.Value = attr.Value.Resolve()
-	attr = h.opts.ReplaceAttr(groups, attr)
-	if attr.Equal(emptyAttr) {
-		return
+	if h.opts.ReplaceAttr != nil {
+		attr = h.opts.ReplaceAttr(groups, attr)
+		if attr.Equal(emptyAttr) {
+			return
+		}
+		attr.Value = attr.Value.Resolve()
 	}
-	attr.Value = attr.Value.Resolve()
 	handle(attr)
 }
 
@@ -214,12 +205,36 @@ func (h *PlainHandler) appendAttr(builder *messageBuilder, attr slog.Attr) {
 }
 
 func (h *PlainHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	if len(attrs) == 0 {
+		return h
+	}
+	builder := getMessageBuilder(h.groups)
+	defer builder.release()
+	ansi := h.ansiEscapesForLevel(defaultLevel)
+	appendAttr := builder.attrs(func(attr slog.Attr) bool {
+		h.handleAttr(builder.groups(), attr, func(attr slog.Attr) {
+			builder.appendRune(' ')
+			builder.appendString(ansi.tagEscape)
+			builder.appendString(builder.groupPath())
+			builder.appendString(attr.Key)
+			builder.appendRune('=')
+			builder.appendString(ansi.defaultEscape)
+			builder.appendString(attr.Value.String())
+		})
+		return true
+	})
+	for _, attr := range attrs {
+		appendAttr(attr)
+	}
 	h2 := h.clone()
-	h2.attrs = append(h2.attrs, attrs...)
+	h2.prerenderdAttrs = append(h2.prerenderdAttrs, builder.bytes())
 	return h2
 }
 
 func (h *PlainHandler) WithGroup(name string) slog.Handler {
+	if name == "" {
+		return h
+	}
 	h2 := h.clone()
 	h2.groups = append(h2.groups, name)
 	return h2
@@ -227,9 +242,11 @@ func (h *PlainHandler) WithGroup(name string) slog.Handler {
 
 func (h *PlainHandler) clone() *PlainHandler {
 	return &PlainHandler{
-		opts:   h.opts,
-		attrs:  slices.Clip(h.attrs),
-		groups: slices.Clip(h.groups),
+		w:               h.w,
+		opts:            h.opts,
+		ansi:            h.ansi,
+		prerenderdAttrs: slices.Clip(h.prerenderdAttrs),
+		groups:          slices.Clip(h.groups),
 	}
 }
 

@@ -37,7 +37,7 @@ func (w *fileWriter) Write(b []byte) (int, error) {
 	err := w.openIfNeeded("")
 	if err != nil {
 		if w.recordLastErrIfNeeded(err) {
-			w.log(slog.LevelWarn, "failed to open log file", slog.String("file", w.fileName), slog.Any("error", err))
+			w.log(slog.LevelWarn, "failed to open log file", slog.String("file", w.fileName), slog.Any("err", err))
 		}
 		return os.Stderr.Write(b)
 	}
@@ -45,7 +45,7 @@ func (w *fileWriter) Write(b []byte) (int, error) {
 	err = w.rotateIfNeeded()
 	if err != nil {
 		if w.recordLastErrIfNeeded(err) {
-			w.log(slog.LevelWarn, "failed to rotate log file", slog.String("file", w.fileName), slog.Any("error", err))
+			w.log(slog.LevelWarn, "failed to rotate log file", slog.String("file", w.fileName), slog.Any("err", err))
 		}
 		return os.Stderr.Write(b)
 	}
@@ -55,7 +55,7 @@ func (w *fileWriter) Write(b []byte) (int, error) {
 		_ = w.file.Close()
 		w.file = nil
 		if w.recordLastErrIfNeeded(err) {
-			w.log(slog.LevelWarn, "failed to write to log file", slog.String("file", w.fileName), slog.Any("error", err))
+			w.log(slog.LevelWarn, "failed to write to log file", slog.String("file", w.fileName), slog.Any("err", err))
 		}
 		return os.Stderr.Write(b)
 	}

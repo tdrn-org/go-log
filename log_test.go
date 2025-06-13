@@ -105,6 +105,24 @@ func TestConfigGetHandler(t *testing.T) {
 	require.IsType(t, jsonHandler, handler)
 }
 
+func TestInitDefault(t *testing.T) {
+	log.Init(nil, nil)
+	require.True(t, slog.Default().Enabled(context.Background(), slog.LevelWarn))
+	require.False(t, slog.Default().Enabled(context.Background(), slog.LevelInfo))
+}
+
+func TestInitVerbose(t *testing.T) {
+	log.Init([]string{"--verbose"}, nil)
+	require.True(t, slog.Default().Enabled(context.Background(), slog.LevelInfo))
+	require.False(t, slog.Default().Enabled(context.Background(), slog.LevelDebug))
+}
+
+func TestInitDebug(t *testing.T) {
+	log.Init([]string{"--debug"}, nil)
+	require.True(t, slog.Default().Enabled(context.Background(), slog.LevelDebug))
+	require.False(t, slog.Default().Enabled(context.Background(), slog.LevelDebug-1))
+}
+
 func generateLogs(logger *slog.Logger, min slog.Level, max slog.Level, n int) {
 	for i := range n {
 		level := slog.Level(int(min) + (i % (int(max-min) + 1)))

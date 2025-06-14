@@ -235,5 +235,4 @@ func Init(args []string, flags map[string]slog.Level) {
 	}
 	logger, _ := init.GetLogger()
 	slog.SetDefault(logger)
-	slog.SetLogLoggerLevel(init.GetLevel())
 }

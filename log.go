@@ -128,31 +128,34 @@ func (c *Config) GetWriter() io.Writer {
 // in case the configuration is not conclusive.
 // Beside the handler this function also returns the [slog.LevelVar] instance
 // assigned to it, enabling dynamic changing of the log level.
-func (c *Config) GetHandler() (slog.Handler, *slog.LevelVar) {
-	levelVar := &slog.LevelVar{}
-	levelVar.Set(c.GetLevel())
+func (c *Config) GetHandler(levelVar *slog.LevelVar) (slog.Handler, *slog.LevelVar) {
+	handlerLevelVar := levelVar
+	if handlerLevelVar == nil {
+		handlerLevelVar = &slog.LevelVar{}
+	}
+	handlerLevelVar.Set(c.GetLevel())
 	switch c.Target {
 	case TargetStdout:
-		return c.getPlainHandler(levelVar)
+		return c.getPlainHandler(handlerLevelVar)
 	case TargetStdoutText:
-		return c.getTextHandler(levelVar)
+		return c.getTextHandler(handlerLevelVar)
 	case TargetStdoutJSON:
-		return c.getJSONHandler(levelVar)
+		return c.getJSONHandler(handlerLevelVar)
 	case TargetStderr:
-		return c.getPlainHandler(levelVar)
+		return c.getPlainHandler(handlerLevelVar)
 	case TargetStderrText:
-		return c.getTextHandler(levelVar)
+		return c.getTextHandler(handlerLevelVar)
 	case TargetStderrJSON:
-		return c.getJSONHandler(levelVar)
+		return c.getJSONHandler(handlerLevelVar)
 	case TargetFileText:
-		return c.getTextHandler(levelVar)
+		return c.getTextHandler(handlerLevelVar)
 	case TargetFileJSON:
-		return c.getJSONHandler(levelVar)
+		return c.getJSONHandler(handlerLevelVar)
 	case "":
-		return c.getTextHandler(levelVar)
+		return c.getTextHandler(handlerLevelVar)
 	}
 	slog.Warn("unrecognized target option", "target", slog.StringValue(string(c.Target)))
-	return c.getTextHandler(levelVar)
+	return c.getTextHandler(handlerLevelVar)
 }
 
 func (c *Config) getPlainHandler(levelVar *slog.LevelVar) (slog.Handler, *slog.LevelVar) {
@@ -190,8 +193,8 @@ func (c *Config) getJSONHandler(levelVar *slog.LevelVar) (slog.Handler, *slog.Le
 // This function simply wraps GetHandler into a [slog.New] call.
 // Beside the logger this function also returns the [slog.LevelVar] instance
 // assigned to it, enabling dynamic changing of the log level.
-func (c *Config) GetLogger() (*slog.Logger, *slog.LevelVar) {
-	h, l := c.GetHandler()
+func (c *Config) GetLogger(levelVar *slog.LevelVar) (*slog.Logger, *slog.LevelVar) {
+	h, l := c.GetHandler(levelVar)
 	return slog.New(h), l
 }
 
@@ -233,6 +236,6 @@ func Init(args []string, flags map[string]slog.Level) {
 			}
 		}
 	}
-	logger, _ := init.GetLogger()
+	logger, _ := init.GetLogger(nil)
 	slog.SetDefault(logger)
 }

@@ -69,39 +69,39 @@ func TestConfigGetHandler(t *testing.T) {
 	jsonHandler := slog.NewJSONHandler(os.Stderr, nil)
 
 	config := &log.Config{}
-	handler, _ := config.GetHandler()
+	handler, _ := config.GetHandler(nil)
 	require.IsType(t, textHandler, handler)
 
 	config.Target = log.TargetStdout
-	handler, _ = config.GetHandler()
+	handler, _ = config.GetHandler(nil)
 	require.IsType(t, plainHandler, handler)
 
 	config.Target = log.TargetStdoutText
-	handler, _ = config.GetHandler()
+	handler, _ = config.GetHandler(nil)
 	require.IsType(t, textHandler, handler)
 
 	config.Target = log.TargetStdoutJSON
-	handler, _ = config.GetHandler()
+	handler, _ = config.GetHandler(nil)
 	require.IsType(t, jsonHandler, handler)
 
 	config.Target = log.TargetStderr
-	handler, _ = config.GetHandler()
+	handler, _ = config.GetHandler(nil)
 	require.IsType(t, plainHandler, handler)
 
 	config.Target = log.TargetStderrText
-	handler, _ = config.GetHandler()
+	handler, _ = config.GetHandler(nil)
 	require.IsType(t, textHandler, handler)
 
 	config.Target = log.TargetStderrJSON
-	handler, _ = config.GetHandler()
+	handler, _ = config.GetHandler(nil)
 	require.IsType(t, jsonHandler, handler)
 
 	config.Target = log.TargetFileText
-	handler, _ = config.GetHandler()
+	handler, _ = config.GetHandler(nil)
 	require.IsType(t, textHandler, handler)
 
 	config.Target = log.TargetFileJSON
-	handler, _ = config.GetHandler()
+	handler, _ = config.GetHandler(nil)
 	require.IsType(t, jsonHandler, handler)
 }
 

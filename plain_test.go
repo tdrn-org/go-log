@@ -23,7 +23,7 @@ func TestPlainLogConfig(t *testing.T) {
 		Target:    log.TargetStdout,
 		Color:     log.ColorOn,
 	}
-	logger, _ := config.GetLogger()
+	logger, _ := config.GetLogger(nil)
 	generateLogs(logger, slog.LevelDebug, slog.LevelError+1, 100)
 }
 

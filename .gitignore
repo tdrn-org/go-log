@@ -18,6 +18,7 @@
 # vendor/
 
 # IDE artifacts
+/.sonarlint/
 /.vscode/
 
 # Log files

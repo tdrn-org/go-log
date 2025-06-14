@@ -22,7 +22,7 @@ import (
 
 // PlainHandlerOptions is used to configure a [PlainHandler].
 type PlainHandlerOptions struct {
-	// Standard [slog.HandlerOptions]
+	// Standard options
 	slog.HandlerOptions
 	// Color defines the color mode to use for logging
 	Color Color

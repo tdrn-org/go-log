@@ -24,21 +24,21 @@ var noGroups = []string{}
 type Target string
 
 const (
-	// Log to stdout using the [PlainHandler]
+	// Log to stdout using the PlainHandler
 	TargetStdout Target = "stdout"
-	// Log to stdout using the [slog.TextHandler]
+	// Log to stdout using the slog.TextHandler
 	TargetStdoutText Target = "text@stdout"
-	// Log to stdout using the [slog.JSONHandler]
+	// Log to stdout using the slog.JSONHandler
 	TargetStdoutJSON Target = "json@stdout"
-	// Log to stderr using the [PlainHandler]
+	// Log to stderr using the PlainHandler
 	TargetStderr Target = "stderr"
-	// Log to stderr using the [slog.TextHandler]
+	// Log to stderr using the slog.TextHandler
 	TargetStderrText Target = "text@stderr"
-	// Log to stderr using the [slog.JSONHandler]
+	// Log to stderr using the slog.JSONHandler
 	TargetStderrJSON Target = "json@stderr"
-	// Log to a file using the [slog.TextHandler]
+	// Log to a file using the slog.TextHandler
 	TargetFileText Target = "text@file"
-	// Log to a file using the [slog.JSONHandler]
+	// Log to a file using the slog.JSONHandler
 	TargetFileJSON Target = "json@file"
 )
 
@@ -61,9 +61,9 @@ type Config struct {
 	// AddSource controls whether to log source file and line
 	AddSource bool
 	// Target defines the logging destination as well as the
-	// [slog.Handler] to use
+	// slog.Handler to use
 	Target Target
-	// Color sets the color mode of the [PlainHandler] (if used)
+	// Color sets the color mode for the PlainHandler (if used)
 	Color Color
 	// FileName defines the file to log into (for file targets)
 	FileName string
@@ -126,71 +126,71 @@ func (c *Config) GetWriter() io.Writer {
 //
 // This function always returns a result, falling back to [slog.TextHandler]
 // in case the configuration is not conclusive.
-// Beside the handler this function also returns the [slog.Leveler] instance
+// Beside the handler this function also returns the [slog.LevelVar] instance
 // assigned to it, enabling dynamic changing of the log level.
-func (c *Config) GetHandler() (slog.Handler, slog.Leveler) {
-	leveler := &slog.LevelVar{}
-	leveler.Set(c.GetLevel())
+func (c *Config) GetHandler() (slog.Handler, *slog.LevelVar) {
+	levelVar := &slog.LevelVar{}
+	levelVar.Set(c.GetLevel())
 	switch c.Target {
 	case TargetStdout:
-		return c.getPlainHandler(leveler)
+		return c.getPlainHandler(levelVar)
 	case TargetStdoutText:
-		return c.getTextHandler(leveler)
+		return c.getTextHandler(levelVar)
 	case TargetStdoutJSON:
-		return c.getJSONHandler(leveler)
+		return c.getJSONHandler(levelVar)
 	case TargetStderr:
-		return c.getPlainHandler(leveler)
+		return c.getPlainHandler(levelVar)
 	case TargetStderrText:
-		return c.getTextHandler(leveler)
+		return c.getTextHandler(levelVar)
 	case TargetStderrJSON:
-		return c.getJSONHandler(leveler)
+		return c.getJSONHandler(levelVar)
 	case TargetFileText:
-		return c.getTextHandler(leveler)
+		return c.getTextHandler(levelVar)
 	case TargetFileJSON:
-		return c.getJSONHandler(leveler)
+		return c.getJSONHandler(levelVar)
 	case "":
-		return c.getTextHandler(leveler)
+		return c.getTextHandler(levelVar)
 	}
 	slog.Warn("unrecognized target option", "target", slog.StringValue(string(c.Target)))
-	return c.getTextHandler(leveler)
+	return c.getTextHandler(levelVar)
 }
 
-func (c *Config) getPlainHandler(leveler slog.Leveler) (slog.Handler, slog.Leveler) {
+func (c *Config) getPlainHandler(levelVar *slog.LevelVar) (slog.Handler, *slog.LevelVar) {
 	w := c.GetWriter()
 	opts := &PlainHandlerOptions{
 		HandlerOptions: slog.HandlerOptions{
 			AddSource: c.AddSource,
-			Level:     leveler,
+			Level:     levelVar,
 		},
 		Color: c.Color,
 	}
-	return NewPlainHandler(w, opts), leveler
+	return NewPlainHandler(w, opts), levelVar
 }
 
-func (c *Config) getTextHandler(leveler slog.Leveler) (slog.Handler, slog.Leveler) {
+func (c *Config) getTextHandler(levelVar *slog.LevelVar) (slog.Handler, *slog.LevelVar) {
 	w := c.GetWriter()
 	opts := &slog.HandlerOptions{
 		AddSource: c.AddSource,
-		Level:     leveler,
+		Level:     levelVar,
 	}
-	return slog.NewTextHandler(w, opts), leveler
+	return slog.NewTextHandler(w, opts), levelVar
 }
 
-func (c *Config) getJSONHandler(leveler slog.Leveler) (slog.Handler, slog.Leveler) {
+func (c *Config) getJSONHandler(levelVar *slog.LevelVar) (slog.Handler, *slog.LevelVar) {
 	w := c.GetWriter()
 	opts := &slog.HandlerOptions{
 		AddSource: c.AddSource,
-		Level:     leveler,
+		Level:     levelVar,
 	}
-	return slog.NewJSONHandler(w, opts), leveler
+	return slog.NewJSONHandler(w, opts), levelVar
 }
 
 // GetLogger determines the [slog.Logger] defined by this configuration.
 //
-// This function simply wraps [GetHandler] into a [slog.New] call.
-// Beside the logger this function also returns the [slog.Leveler] instance
+// This function simply wraps GetHandler into a [slog.New] call.
+// Beside the logger this function also returns the [slog.LevelVar] instance
 // assigned to it, enabling dynamic changing of the log level.
-func (c *Config) GetLogger() (*slog.Logger, slog.Leveler) {
+func (c *Config) GetLogger() (*slog.Logger, *slog.LevelVar) {
 	h, l := c.GetHandler()
 	return slog.New(h), l
 }
@@ -202,19 +202,22 @@ func (c *Config) GetLogger() (*slog.Logger, slog.Leveler) {
 // as well as the given command flag to log level map.
 // If the map is nil, the following default mapping is used:
 //
-//	'-v', '--verbose': [slog.LevelInfo].
+//	'-v', '--verbose': slog.LevelInfo.
 //
-//	'-d', '--debug' [slog.LevelDebug].
+//	'-d', '--debug' slog.LevelDebug.
 //
 // If no command flag matches, the [slog.LevelWarning] is used.
 func Init(args []string, flags map[string]slog.Level) {
-
 	init := &Config{
 		Level:  slog.LevelWarn.String(),
 		Target: TargetStdout,
 		Color:  ColorAuto,
 	}
-	for _, arg := range args {
+	initArgs := args
+	if initArgs == nil {
+		initArgs = os.Args
+	}
+	for _, arg := range initArgs {
 		if flags != nil {
 			level, ok := flags[arg]
 			if !ok {

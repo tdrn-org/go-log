@@ -46,9 +46,10 @@ func NewPlainHandler(w io.Writer, opts *PlainHandlerOptions) *PlainHandler {
 		handlerOpts = &PlainHandlerOptions{}
 	}
 	ansi := false
-	if handlerOpts.Color == ColorOn {
+	switch handlerOpts.Color {
+	case ColorOn:
 		ansi = true
-	} else if handlerOpts.Color == ColorAuto {
+	case ColorAuto:
 		file, ok := w.(*os.File)
 		ansi = ok && (isatty.IsTerminal(file.Fd()) || isatty.IsCygwinTerminal(file.Fd()))
 	}
@@ -155,7 +156,10 @@ func (h *PlainHandler) appendTime(builder *messageBuilder, t time.Time) {
 }
 
 func (h *PlainHandler) appendLevel(builder *messageBuilder, level slog.Level) {
-	s := level.String()
+	s := "NOTICE"
+	if level != LevelNotice {
+		s = level.String()
+	}
 	slen := len(s)
 	switch slen {
 	case 6:
@@ -265,21 +269,17 @@ func (h *PlainHandler) ansiEscapesForLevel(level slog.Level) *ansiEscapes {
 		return noAnsi
 	}
 	var levelEscape, messageEscape string
-	switch level {
-	case -4, -3, -2, -1:
+	switch {
+	case level < slog.LevelInfo:
 		levelEscape, messageEscape = ansiDefault, ansiDefault
-	case 0, 1, 2, 3:
+	case level < slog.LevelWarn:
 		levelEscape, messageEscape = ansiInfo, ansiHighlight
-	case 4, 5, 6, 7:
+	case level < slog.LevelError:
 		levelEscape, messageEscape = ansiWarn, ansiHighlight
-	case 8:
-		levelEscape, messageEscape = ansiError, ansiHighlight
+	case level == LevelNotice:
+		levelEscape, messageEscape = ansiNotice, ansiHighlight
 	default:
-		if level > 8 {
-			levelEscape, messageEscape = ansiError, ansiHighlight
-		} else {
-			levelEscape, messageEscape = ansiDefault, ansiDefault
-		}
+		levelEscape, messageEscape = ansiError, ansiHighlight
 	}
 	return &ansiEscapes{
 		resetEscape:     ansiReset,
@@ -299,6 +299,7 @@ const ansiHighlight = "\x1b[97m"
 const ansiInfo = "\x1b[32m"
 const ansiWarn = "\x1b[33m"
 const ansiError = "\x1b[31m"
+const ansiNotice = "\x1b[97m"
 const ansiTag = "\x1b[36m"
 
 type ansiEscapes struct {

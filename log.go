@@ -5,7 +5,8 @@
 // This software may be modified and distributed under the terms
 // of the MIT license. See the LICENSE file for details.
 
-// Package log provides functionality for easy setup and integration of [log/slog] for application logging.
+// Package log provides functionality for easy setup and integration
+// of [log/slog] for application logging.
 package log
 
 import (
@@ -14,6 +15,11 @@ import (
 	"os"
 	"strings"
 )
+
+// LevelNotice defines a dedicated level (slog.LevelError + 4) used for
+// important message not actually related to an error state but to be
+// shown even in case of a high level filter.
+const LevelNotice slog.Level = slog.LevelError + 4
 
 const defaultLevel slog.Level = slog.LevelInfo
 
@@ -80,12 +86,38 @@ func (c *Config) GetLevel() slog.Level {
 	switch strings.ToLower(c.Level) {
 	case "debug":
 		return slog.LevelDebug
+	case "debug+1":
+		return slog.LevelDebug + 1
+	case "debug+2":
+		return slog.LevelDebug + 2
+	case "debug+3":
+		return slog.LevelDebug + 3
 	case "info":
 		return slog.LevelInfo
+	case "info+1":
+		return slog.LevelInfo + 1
+	case "info+2":
+		return slog.LevelInfo + 2
+	case "info+3":
+		return slog.LevelInfo + 3
 	case "warn":
 		return slog.LevelWarn
+	case "warn+1":
+		return slog.LevelWarn + 1
+	case "warn+2":
+		return slog.LevelWarn + 2
+	case "warn+3":
+		return slog.LevelWarn + 3
 	case "error":
 		return slog.LevelError
+	case "error+1":
+		return slog.LevelError + 1
+	case "error+2":
+		return slog.LevelError + 2
+	case "error+3":
+		return slog.LevelError + 3
+	case "notice":
+		return slog.LevelError + 4
 	case "":
 		return defaultLevel
 	}
@@ -198,11 +230,30 @@ func (c *Config) GetLogger(levelVar *slog.LevelVar) (*slog.Logger, *slog.LevelVa
 	return slog.New(h), l
 }
 
-// Init sets the default logger to [TargetStdout] as well as the requested
-// log level.
+// Init sets up the default logger using the given parameters.
+func Init(level slog.Level, target Target, color Color) {
+	init := &Config{
+		Level:  level.String(),
+		Target: target,
+		Color:  color,
+	}
+	logger, _ := init.GetLogger(nil)
+	slog.SetDefault(logger)
+}
+
+// InitDefaults is equivalent to
+//
+//	Init(slog.LevelInfo, log.TargetStdout, log.ColorAuto)
+func InitDefault() {
+	Init(defaultLevel, TargetStdout, ColorAuto)
+}
+
+// InitFromFlags sets the default logger to [TargetStdout] as well as the requested
+// log level based on the command line flags.
 //
 // The log level is derived from the given command line arguments
 // as well as the given command flag to log level map.
+// If the command line arguments are nil, [os.Args] is used instead.
 // If the map is nil, the following default mapping is used:
 //
 //	'-v', '--verbose': slog.LevelInfo.
@@ -210,12 +261,10 @@ func (c *Config) GetLogger(levelVar *slog.LevelVar) (*slog.Logger, *slog.LevelVa
 //	'-d', '--debug' slog.LevelDebug.
 //
 // If no command flag matches, the [slog.LevelWarning] is used.
-func Init(args []string, flags map[string]slog.Level) {
-	init := &Config{
-		Level:  slog.LevelWarn.String(),
-		Target: TargetStdout,
-		Color:  ColorAuto,
-	}
+func InitFromFlags(args []string, flags map[string]slog.Level) {
+	initLevel := slog.LevelWarn
+	initTarget := TargetStdout
+	initColor := ColorAuto
 	initArgs := args
 	if initArgs == nil {
 		initArgs = os.Args
@@ -226,16 +275,15 @@ func Init(args []string, flags map[string]slog.Level) {
 			if !ok {
 				continue
 			}
-			init.Level = level.String()
+			initLevel = level
 		} else {
 			switch arg {
 			case "-v", "--verbose":
-				init.Level = slog.LevelInfo.String()
+				initLevel = slog.LevelInfo
 			case "-d", "--debug":
-				init.Level = slog.LevelDebug.String()
+				initLevel = slog.LevelDebug
 			}
 		}
 	}
-	logger, _ := init.GetLogger(nil)
-	slog.SetDefault(logger)
+	Init(initLevel, initTarget, initColor)
 }

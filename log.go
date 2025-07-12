@@ -256,9 +256,13 @@ func InitDefault() {
 // If the command line arguments are nil, [os.Args] is used instead.
 // If the map is nil, the following default mapping is used:
 //
-//	'-v', '--verbose': slog.LevelInfo.
+//	'-s', '--silent': slog.LevelError
 //
-//	'-d', '--debug' slog.LevelDebug.
+//	'-q', '--quiet': slog.LevelWarn
+//
+//	'-v', '--verbose': slog.LevelInfo
+//
+//	'-d', '--debug' slog.LevelDebug
 //
 // If no command flag matches, the [slog.LevelWarning] is used.
 func InitFromFlags(args []string, flags map[string]slog.Level) {
@@ -278,6 +282,10 @@ func InitFromFlags(args []string, flags map[string]slog.Level) {
 			initLevel = level
 		} else {
 			switch arg {
+			case "-s", "--silent":
+				initLevel = slog.LevelError
+			case "-q", "--quiet":
+				initLevel = slog.LevelWarn
 			case "-v", "--verbose":
 				initLevel = slog.LevelInfo
 			case "-d", "--debug":

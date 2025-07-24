@@ -10,6 +10,7 @@
 package log
 
 import (
+	"context"
 	"io"
 	"log/slog"
 	"os"
@@ -20,6 +21,11 @@ import (
 // important message not actually related to an error state but to be
 // shown even in case of a high level filter.
 const LevelNotice slog.Level = slog.LevelError + 4
+
+// Notice emits a log message on [LevelNotice].
+func Notice(logger *slog.Logger, msg string, args ...any) {
+	logger.Log(context.Background(), LevelNotice, msg, args...)
+}
 
 const defaultLevel slog.Level = slog.LevelInfo
 
@@ -241,11 +247,18 @@ func Init(level slog.Level, target Target, color Color) {
 	slog.SetDefault(logger)
 }
 
-// InitDefaults is equivalent to
+// InitDefaults is equivalent to invoking
 //
 //	Init(slog.LevelInfo, log.TargetStdout, log.ColorAuto)
 func InitDefault() {
 	Init(defaultLevel, TargetStdout, ColorAuto)
+}
+
+// InitDebug is equivalent to invoking
+//
+//	Init(slog.LevelDebug, log.TargetStdout, log.ColorAuto)
+func InitDebug() {
+	Init(slog.LevelDebug, TargetStdout, ColorAuto)
 }
 
 // InitFromFlags sets the default logger to [TargetStdout] as well as the requested
@@ -264,9 +277,9 @@ func InitDefault() {
 //
 //	'-d', '--debug' slog.LevelDebug
 //
-// If no command flag matches, the [slog.LevelWarning] is used.
+// If no command flag matches, the [slog.LevelInfo] is used.
 func InitFromFlags(args []string, flags map[string]slog.Level) {
-	initLevel := slog.LevelWarn
+	initLevel := defaultLevel
 	initTarget := TargetStdout
 	initColor := ColorAuto
 	initArgs := args

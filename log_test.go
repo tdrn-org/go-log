@@ -105,20 +105,44 @@ func TestConfigGetHandler(t *testing.T) {
 	require.IsType(t, jsonHandler, handler)
 }
 
-func TestInitDefault(t *testing.T) {
+func TestInitDefaultArgs(t *testing.T) {
 	log.InitFromFlags(nil, nil)
+	require.True(t, slog.Default().Enabled(context.Background(), slog.LevelInfo))
+	require.False(t, slog.Default().Enabled(context.Background(), slog.LevelDebug))
+}
+
+func TestInitSilentArgs(t *testing.T) {
+	log.InitFromFlags([]string{"--silent"}, nil)
+	require.True(t, slog.Default().Enabled(context.Background(), slog.LevelError))
+	require.False(t, slog.Default().Enabled(context.Background(), slog.LevelWarn))
+}
+
+func TestInitQuietArgs(t *testing.T) {
+	log.InitFromFlags([]string{"--quiet"}, nil)
 	require.True(t, slog.Default().Enabled(context.Background(), slog.LevelWarn))
 	require.False(t, slog.Default().Enabled(context.Background(), slog.LevelInfo))
 }
 
-func TestInitVerbose(t *testing.T) {
+func TestInitVerboseArgs(t *testing.T) {
 	log.InitFromFlags([]string{"--verbose"}, nil)
 	require.True(t, slog.Default().Enabled(context.Background(), slog.LevelInfo))
 	require.False(t, slog.Default().Enabled(context.Background(), slog.LevelDebug))
 }
 
-func TestInitDebug(t *testing.T) {
+func TestInitDebugArgs(t *testing.T) {
 	log.InitFromFlags([]string{"--debug"}, nil)
+	require.True(t, slog.Default().Enabled(context.Background(), slog.LevelDebug))
+	require.False(t, slog.Default().Enabled(context.Background(), slog.LevelDebug-1))
+}
+
+func TestInitDefault(t *testing.T) {
+	log.InitDefault()
+	require.True(t, slog.Default().Enabled(context.Background(), slog.LevelInfo))
+	require.False(t, slog.Default().Enabled(context.Background(), slog.LevelDebug))
+}
+
+func TestInitDebug(t *testing.T) {
+	log.InitDebug()
 	require.True(t, slog.Default().Enabled(context.Background(), slog.LevelDebug))
 	require.False(t, slog.Default().Enabled(context.Background(), slog.LevelDebug-1))
 }

@@ -1,4 +1,3 @@
-// log.go
 //
 // Copyright (C) 2023-2025 Holger de Carne
 //
@@ -29,9 +28,6 @@ func Notice(logger *slog.Logger, msg string, args ...any) {
 
 const defaultLevel slog.Level = slog.LevelInfo
 
-var emptyAttr = slog.Attr{}
-var noGroups = []string{}
-
 // Target defines a logging destination as well as the [slog.Handler] to use
 type Target string
 
@@ -52,6 +48,8 @@ const (
 	TargetFileText Target = "text@file"
 	// Log to a file using the slog.JSONHandler
 	TargetFileJSON Target = "json@file"
+	// Log to syslog using the SyslogHandler
+	TargetSyslog Target = "syslog"
 )
 
 // Color mode for console logging
@@ -82,6 +80,33 @@ type Config struct {
 	// FileSizeLimit defines the file size to rotate after
 	// (values <= 0 disable rotation)
 	FileSizeLimit int64
+	// SyslogNetwork defines the network to use for connecting
+	// to the syslog server. Possible valures are:
+	//	"udp"		// connect using udp
+	//	"udp4"		// connect using udp (IPv4 only)
+	//	"udp6"		// connect using udp (IPv6 only)
+	//	"tcp"		// connect using tcp
+	//	"tcp4"		// connect using tcp (IPv4 only)
+	//	"tcp6"		// connect using tcp (IPv6 only)
+	//	"tcp+tls"	// connect using TLS via tcp
+	//	"tcp4+tls"	// connect using TLS via tcp (IPv4 only)
+	//	"tcp6+tls"	// connect using TLS via tcp (IPv6 only)
+	// Defaults to "tcp"
+	SyslogNetwork string
+	// SyslogAddress defines the syslog server address to
+	// to connect to (host:port)
+	SyslogAddress string
+	// SyslogEncoding defines the syslog encoding to use.
+	// Supported formats are:
+	//	"rfc3164"			// RFC3164 (BSD) format with implicit framing
+	//	"rfc3164+framing"	// RFC3164 (BSD) format with octet framing
+	//	"rfc5424"			// RFC5424 (Syslog) format with implicit framing
+	//	"rfc5424+framing"	// RFC5424 (Syslog) format with octet framing
+	// Defaults to "rfc5424+framing"
+	SyslogEncoding string
+	// SyslogFaclity defines the syslog facility to use
+	// (see https://datatracker.ietf.org/doc/html/rfc5424#section-6.2.1)
+	SyslogFacility int
 }
 
 // GetLevel determines the [slog.Level] defined by this configuration.
@@ -153,6 +178,8 @@ func (c *Config) GetWriter() io.Writer {
 		return &fileWriter{fileName: c.FileName, fileSizeLimit: c.FileSizeLimit}
 	case TargetFileJSON:
 		return &fileWriter{fileName: c.FileName, fileSizeLimit: c.FileSizeLimit}
+	case TargetSyslog:
+		return &syslogWriter{network: c.SyslogNetwork, address: c.SyslogAddress}
 	case "":
 		return os.Stderr
 	}
@@ -189,6 +216,8 @@ func (c *Config) GetHandler(levelVar *slog.LevelVar) (slog.Handler, *slog.LevelV
 		return c.getTextHandler(handlerLevelVar)
 	case TargetFileJSON:
 		return c.getJSONHandler(handlerLevelVar)
+	case TargetSyslog:
+		return c.getSyslogHandler(handlerLevelVar)
 	case "":
 		return c.getTextHandler(handlerLevelVar)
 	}
@@ -224,6 +253,19 @@ func (c *Config) getJSONHandler(levelVar *slog.LevelVar) (slog.Handler, *slog.Le
 		Level:     levelVar,
 	}
 	return slog.NewJSONHandler(w, opts), levelVar
+}
+
+func (c *Config) getSyslogHandler(levelVar *slog.LevelVar) (slog.Handler, *slog.LevelVar) {
+	w := c.GetWriter()
+	opts := &SyslogHandlerOptions{
+		HandlerOptions: slog.HandlerOptions{
+			AddSource: c.AddSource,
+			Level:     levelVar,
+		},
+		Encoding: SyslogEncoding(c.SyslogEncoding),
+		Facility: c.SyslogFacility,
+	}
+	return NewSyslogHandler(w, opts), levelVar
 }
 
 // GetLogger determines the [slog.Logger] defined by this configuration.

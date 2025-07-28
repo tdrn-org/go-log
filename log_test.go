@@ -1,4 +1,3 @@
-// log_test.go
 //
 // Copyright (C) 2023-2025 Holger de Carne
 //
@@ -147,9 +146,13 @@ func TestInitDebug(t *testing.T) {
 	require.False(t, slog.Default().Enabled(context.Background(), slog.LevelDebug-1))
 }
 
-func generateLogs(logger *slog.Logger, min slog.Level, max slog.Level, n int) {
+func generateLogs(logger *slog.Logger, min slog.Level, max slog.Level, n int, args ...any) {
 	for i := range n {
 		level := slog.Level(int(min) + (i % (int(max-min) + 1)))
-		logger.Log(context.Background(), level, "test message", slog.Int("index", i))
+		logArgs := make([]any, 0, len(args)+2)
+		logArgs = append(logArgs, slog.String("tag", "test"))
+		logArgs = append(logArgs, slog.Int("index", i))
+		logArgs = append(logArgs, args...)
+		logger.Log(context.Background(), level, "test message", logArgs...)
 	}
 }

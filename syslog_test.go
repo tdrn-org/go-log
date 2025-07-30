@@ -9,12 +9,9 @@ package log_test
 import (
 	"crypto/tls"
 	"errors"
-	"fmt"
 	"io"
 	"log/slog"
 	"net"
-	"regexp"
-	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -41,10 +38,7 @@ func TestSyslogLogEncodings(t *testing.T) {
 		logger, _ := config.GetLogger(nil)
 		generateLogs(logger, slog.LevelDebug, slog.LevelError+1, 100, slog.String(log.SyslogKey, "ID47"))
 	}
-	receiver.Wait(10)
-	valid, invalid := receiver.Counts()
-	require.Greater(t, valid, 0)
-	require.Zero(t, invalid)
+	receiver.Wait(len(encodings) * 100)
 }
 
 func TestSyslogUDP(t *testing.T) {
@@ -59,10 +53,7 @@ func TestSyslogUDP(t *testing.T) {
 	}
 	logger, _ := config.GetLogger(nil)
 	generateLogs(logger, slog.LevelDebug, slog.LevelError+1, 100, slog.String(log.SyslogKey, "ID47"))
-	receiver.Wait(10)
-	valid, invalid := receiver.Counts()
-	require.Greater(t, valid, 0)
-	require.Zero(t, invalid)
+	receiver.Wait(100)
 }
 
 func TestSyslogTLS(t *testing.T) {
@@ -76,56 +67,36 @@ func TestSyslogTLS(t *testing.T) {
 	}
 	logger, _ := config.GetLogger(nil)
 	generateLogs(logger, slog.LevelDebug, slog.LevelError+1, 100, slog.String(log.SyslogKey, "ID47"))
-	receiver.Wait(10)
-	valid, invalid := receiver.Counts()
-	require.Greater(t, valid, 0)
-	require.Zero(t, invalid)
+	receiver.Wait(100)
 }
 
 const syslogListenAddress = "localhost:"
 
-var rfc3164Pattern = regexp.MustCompile(`^<\d+>[JFMASOND]`)
-var rfc3164FPattern = regexp.MustCompile(`^\d+ <\d+>[JFMASOND]`)
-var rfc5424Pattern = regexp.MustCompile(`^<\d+>1 `)
-var rfc5424FPattern = regexp.MustCompile(`^\d+ <\d+>1 `)
-
 type syslogReceiver struct {
-	validCount   int
-	invalidCount int
+	messageCount int
 	mutex        sync.Mutex
 }
 
-func (r *syslogReceiver) evalMessage(msg string) {
+func (r *syslogReceiver) evalMessage(message log.SyslogMessage) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	if rfc3164Pattern.MatchString(msg) {
-		r.validCount++
-	} else if rfc3164FPattern.MatchString(msg) {
-		r.validCount++
-	} else if rfc5424Pattern.MatchString(msg) {
-		r.validCount++
-	} else if rfc5424FPattern.MatchString(msg) {
-		r.validCount++
-	} else {
-		fmt.Printf("invalid syslog message: %s\n", strconv.Quote(string(msg)))
-		r.invalidCount++
-	}
+	r.messageCount++
 }
 
 func (r *syslogReceiver) Wait(total int) {
 	for {
-		valid, invalid := r.Counts()
-		if valid+invalid >= total {
+		messageCount := r.MessageCount()
+		if messageCount >= total {
 			return
 		}
 		time.Sleep(time.Second)
 	}
 }
 
-func (r *syslogReceiver) Counts() (int, int) {
+func (r *syslogReceiver) MessageCount() int {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	return r.validCount, r.invalidCount
+	return r.messageCount
 }
 
 type syslogTCPReceiver struct {
@@ -182,17 +153,20 @@ func (r *syslogTCPReceiver) Accept() *syslogTCPReceiver {
 
 func (r *syslogTCPReceiver) handleConn(conn net.Conn) {
 	defer conn.Close()
-	buffer := make([]byte, 4096)
+	decoder := &log.SyslogDecoder{}
 	for {
-		len, err := conn.Read(buffer)
-		if errors.Is(err, io.EOF) {
+		err := decoder.Read(conn)
+		if errors.Is(err, net.ErrClosed) || errors.Is(err, io.EOF) {
 			return
 		}
 		if err != nil {
 			slog.Error("tcp read failure", slog.Any("err", err))
 			return
 		}
-		r.syslogReceiver.evalMessage(string(buffer[:len]))
+		messages := decoder.Decode()
+		for _, message := range messages {
+			r.syslogReceiver.evalMessage(message)
+		}
 	}
 }
 
@@ -219,9 +193,9 @@ func (r *syslogUDPReceiver) Close() error {
 
 func (r *syslogUDPReceiver) Read() *syslogUDPReceiver {
 	go func() {
-		buffer := make([]byte, 4096)
+		decoder := &log.SyslogDecoder{}
 		for {
-			len, _, err := r.packetConn.ReadFrom(buffer)
+			err := decoder.ReadFrom(r.packetConn)
 			if errors.Is(err, net.ErrClosed) {
 				return
 			}
@@ -229,7 +203,10 @@ func (r *syslogUDPReceiver) Read() *syslogUDPReceiver {
 				slog.Error("udp read failure", slog.Any("err", err))
 				return
 			}
-			r.syslogReceiver.evalMessage(string(buffer[:len]))
+			messages := decoder.Decode()
+			for _, message := range messages {
+				r.syslogReceiver.evalMessage(message)
+			}
 		}
 	}()
 	return r

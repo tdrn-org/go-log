@@ -291,7 +291,7 @@ func (h *SyslogHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 		appendAttr(attr)
 	}
 	h2 := h.clone()
-	h2.prerenderdAttrs = append(h2.prerenderdAttrs, builder.Bytes())
+	h2.prerenderdAttrs = append(h2.prerenderdAttrs, slices.Clone(builder.Bytes()))
 	if msgID != "" {
 		h2.msgID = msgID
 	}

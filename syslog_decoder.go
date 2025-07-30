@@ -125,7 +125,7 @@ func (m *UndecodedSyslogMessage) decodeTimestamp(off int, layout string, layoutL
 	var decodeOff int
 	var timestampString string
 	if layoutLen > 0 {
-		decodeOff := off + layoutLen
+		decodeOff = off + layoutLen
 		if decodeOff >= len(m.raw) {
 			return -1, time.Time{}
 		}

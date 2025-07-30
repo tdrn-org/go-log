@@ -9,9 +9,11 @@ package log_test
 import (
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -22,6 +24,44 @@ import (
 	"github.com/tdrn-org/go-tlsconf/tlsclient"
 	"github.com/tdrn-org/go-tlsconf/tlsserver"
 )
+
+func TestSyslogConfig(t *testing.T) {
+	receiver := newSyslogTCPReceiver(t, false).Accept()
+	defer receiver.Close()
+	config := log.Config{
+		Level:         slog.LevelDebug.String(),
+		Target:        log.TargetSyslog,
+		SyslogAddress: receiver.Address(),
+	}
+	logger, _ := config.GetLogger(nil)
+	generateLogs(logger, slog.LevelDebug, log.LevelNotice, 100)
+	receiver.Wait(100)
+}
+
+func TestSyslogHanlder(t *testing.T) {
+	h := log.NewSyslogHandler(os.Stdout, &log.SyslogHandlerOptions{
+		HandlerOptions: slog.HandlerOptions{
+			AddSource: true,
+			Level:     slog.LevelDebug,
+			ReplaceAttr: func(groups []string, attr slog.Attr) slog.Attr {
+				switch attr.Key {
+				case slog.TimeKey:
+					return slog.Time(slog.TimeKey, time.Time{})
+				case slog.SourceKey:
+					return slog.Attr{}
+				default:
+					return attr
+				}
+			},
+		},
+		Encoding: log.SyslogEncodingDefault,
+		Facility: 99,
+	})
+	logger := slog.New(h)
+	logger = logger.With(slog.Group("test", slog.String("name", "SyslogPlainHandler")))
+	logger = logger.WithGroup("generate")
+	generateLogs(logger, slog.LevelDebug, log.LevelNotice, 100)
+}
 
 func TestSyslogLogEncodings(t *testing.T) {
 	receiver := newSyslogTCPReceiver(t, false).Accept()
@@ -36,7 +76,8 @@ func TestSyslogLogEncodings(t *testing.T) {
 			SyslogEncoding: string(encoding),
 		}
 		logger, _ := config.GetLogger(nil)
-		generateLogs(logger, slog.LevelDebug, slog.LevelError+1, 100, slog.String(log.SyslogKey, "ID47"))
+		logger = logger.With(slog.String(log.SyslogKey, "ID47"))
+		generateLogs(logger, slog.LevelDebug, log.LevelNotice, 100)
 	}
 	receiver.Wait(len(encodings) * 100)
 }
@@ -52,7 +93,8 @@ func TestSyslogUDP(t *testing.T) {
 		SyslogAddress:  receiver.Address(),
 	}
 	logger, _ := config.GetLogger(nil)
-	generateLogs(logger, slog.LevelDebug, slog.LevelError+1, 100, slog.String(log.SyslogKey, "ID47"))
+	logger = logger.With(slog.String(log.SyslogKey, "ID47"))
+	generateLogs(logger, slog.LevelDebug, log.LevelNotice, 100)
 	receiver.Wait(100)
 }
 
@@ -66,37 +108,48 @@ func TestSyslogTLS(t *testing.T) {
 		SyslogAddress: receiver.Address(),
 	}
 	logger, _ := config.GetLogger(nil)
-	generateLogs(logger, slog.LevelDebug, slog.LevelError+1, 100, slog.String(log.SyslogKey, "ID47"))
+	logger = logger.With(slog.String(log.SyslogKey, "ID47"))
+	generateLogs(logger, slog.LevelDebug, log.LevelNotice, 100)
 	receiver.Wait(100)
 }
 
 const syslogListenAddress = "localhost:"
 
 type syslogReceiver struct {
-	messageCount int
-	mutex        sync.Mutex
+	undecodedMessageCount int
+	rfc3614MessageCount   int
+	rfc5424MessageCount   int
+	mutex                 sync.Mutex
 }
 
 func (r *syslogReceiver) evalMessage(message log.SyslogMessage) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	r.messageCount++
+	switch message.(type) {
+	case *log.UndecodedSyslogMessage:
+		r.undecodedMessageCount++
+	case *log.RFC3164SyslogMessage:
+		r.rfc3614MessageCount++
+	case *log.RFC5424SyslogMessage:
+		r.rfc5424MessageCount++
+	}
+	fmt.Printf("syslog: %s\n", message.String())
 }
 
 func (r *syslogReceiver) Wait(total int) {
 	for {
-		messageCount := r.MessageCount()
-		if messageCount >= total {
+		undecoded, rfc3614, rfc5424 := r.MessageCounts()
+		if undecoded+rfc3614+rfc5424 >= total {
 			return
 		}
 		time.Sleep(time.Second)
 	}
 }
 
-func (r *syslogReceiver) MessageCount() int {
+func (r *syslogReceiver) MessageCounts() (int, int, int) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	return r.messageCount
+	return r.undecodedMessageCount, r.rfc3614MessageCount, r.rfc5424MessageCount
 }
 
 type syslogTCPReceiver struct {

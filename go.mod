@@ -15,6 +15,6 @@ require (
 
 require (
 	github.com/stretchr/testify v1.10.0
-	github.com/tdrn-org/go-tlsconf v0.0.3
+	github.com/tdrn-org/go-tlsconf v0.0.4
 	golang.org/x/sys v0.34.0 // indirect
 )

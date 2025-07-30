@@ -64,22 +64,30 @@ func TestSyslogHanlder(t *testing.T) {
 }
 
 func TestSyslogLogEncodings(t *testing.T) {
-	receiver := newSyslogTCPReceiver(t, false).Accept()
-	defer receiver.Close()
-	encodings := []log.SyslogEncoding{log.SyslogEncodingRFC3164, log.SyslogEncodingRFC3164F, log.SyslogEncodingRFC5424, log.SyslogEncodingRFC5424F}
-	for _, encoding := range encodings {
-		config := log.Config{
-			Level:          slog.LevelDebug.String(),
-			Target:         log.TargetSyslog,
-			SyslogNetwork:  "tcp",
-			SyslogAddress:  receiver.Address(),
-			SyslogEncoding: string(encoding),
-		}
-		logger, _ := config.GetLogger(nil)
-		logger = logger.With(slog.String(log.SyslogKey, "ID47"))
-		generateLogs(logger, slog.LevelDebug, log.LevelNotice, 100)
+	encodings := []log.SyslogEncoding{
+		log.SyslogEncodingDefault,
+		log.SyslogEncodingRFC3164,
+		log.SyslogEncodingRFC3164F,
+		log.SyslogEncodingRFC5424,
+		log.SyslogEncodingRFC5424F,
 	}
-	receiver.Wait(len(encodings) * 100)
+	for _, encoding := range encodings {
+		t.Run(string(encoding), func(t *testing.T) {
+			receiver := newSyslogTCPReceiver(t, false).Accept()
+			defer receiver.Close()
+			config := log.Config{
+				Level:          slog.LevelDebug.String(),
+				Target:         log.TargetSyslog,
+				SyslogNetwork:  "tcp",
+				SyslogAddress:  receiver.Address(),
+				SyslogEncoding: string(encoding),
+			}
+			logger, _ := config.GetLogger(nil)
+			logger = logger.With(slog.String(log.SyslogKey, "ID47"))
+			generateLogs(logger, slog.LevelDebug, log.LevelNotice, 100)
+			receiver.Wait(100)
+		})
+	}
 }
 
 func TestSyslogUDP(t *testing.T) {
@@ -266,6 +274,6 @@ func (r *syslogUDPReceiver) Read() *syslogUDPReceiver {
 }
 
 func init() {
-	_ = tlsserver.SetOptions(tlsserver.UseEphemeralCertificate("localhost"))
+	_ = tlsserver.SetOptions(tlsserver.UseEphemeralCertificate("localhost", tlsserver.CertificateAlgorithmDefault))
 	_ = tlsclient.SetOptions(tlsclient.AppendServerCertificates())
 }

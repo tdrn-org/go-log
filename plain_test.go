@@ -23,7 +23,7 @@ func TestPlainLogConfig(t *testing.T) {
 		Color:     log.ColorOn,
 	}
 	logger, _ := config.GetLogger(nil)
-	generateLogs(logger, slog.LevelDebug, log.LevelNotice, 100)
+	generateLogs(t, logger, slog.LevelDebug, log.LevelNotice, 100)
 }
 
 func TestPlainHandler(t *testing.T) {
@@ -47,5 +47,5 @@ func TestPlainHandler(t *testing.T) {
 	logger := slog.New(h)
 	logger = logger.With(slog.Group("test", slog.String("name", "TestPlainHandler")))
 	logger = logger.WithGroup("generate")
-	generateLogs(logger, slog.LevelDebug, log.LevelNotice, 100)
+	generateLogs(t, logger, slog.LevelDebug, log.LevelNotice, 100)
 }

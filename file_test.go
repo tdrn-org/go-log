@@ -26,7 +26,7 @@ func TestFileLogWithLimit(t *testing.T) {
 		FileSizeLimit: 4000,
 	}
 	logger, _ := config.GetLogger(nil)
-	generateLogs(logger, slog.LevelInfo, log.LevelNotice, 100)
+	generateLogs(t, logger, slog.LevelInfo, log.LevelNotice, 100)
 	entries, err := os.ReadDir(logdir)
 	require.NoError(t, err)
 	require.Len(t, entries, 4)
@@ -42,7 +42,7 @@ func TestFileLogWithoutLimit(t *testing.T) {
 		FileSizeLimit: 0,
 	}
 	logger, _ := config.GetLogger(nil)
-	generateLogs(logger, slog.LevelInfo, log.LevelNotice, 100)
+	generateLogs(t, logger, slog.LevelInfo, log.LevelNotice, 100)
 	entries, err := os.ReadDir(logdir)
 	require.NoError(t, err)
 	require.Len(t, entries, 1)
@@ -57,7 +57,7 @@ func TestFileLogInvalidFile(t *testing.T) {
 		FileSizeLimit: 0,
 	}
 	logger, _ := config.GetLogger(nil)
-	generateLogs(logger, slog.LevelInfo, log.LevelNotice, 10)
+	generateLogs(t, logger, slog.LevelInfo, log.LevelNotice, 10)
 	entries, err := os.ReadDir(logdir)
 	require.NoError(t, err)
 	require.Len(t, entries, 0)

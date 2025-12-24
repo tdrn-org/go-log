@@ -35,10 +35,10 @@ func (h *RawHandler) Handle(_ context.Context, record slog.Record) error {
 	return err
 }
 
-func (h *RawHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+func (h *RawHandler) WithAttrs(_ []slog.Attr) slog.Handler {
 	return h
 }
 
-func (h *RawHandler) WithGroup(name string) slog.Handler {
+func (h *RawHandler) WithGroup(_ string) slog.Handler {
 	return h
 }

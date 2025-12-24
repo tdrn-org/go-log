@@ -146,13 +146,13 @@ func TestInitDebug(t *testing.T) {
 	require.False(t, slog.Default().Enabled(context.Background(), slog.LevelDebug-1))
 }
 
-func generateLogs(logger *slog.Logger, min slog.Level, max slog.Level, n int, args ...any) {
+func generateLogs(t *testing.T, logger *slog.Logger, min slog.Level, max slog.Level, n int, args ...any) {
 	for i := range n {
 		level := slog.Level(int(min) + (i % (int(max-min) + 1)))
 		logArgs := make([]any, 0, len(args)+2)
 		logArgs = append(logArgs, slog.String("tag", "test"))
 		logArgs = append(logArgs, slog.Int("index", i))
 		logArgs = append(logArgs, args...)
-		logger.Log(context.Background(), level, "test message", logArgs...)
+		logger.Log(t.Context(), level, "test message", logArgs...)
 	}
 }

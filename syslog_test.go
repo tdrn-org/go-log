@@ -34,7 +34,7 @@ func TestSyslogConfig(t *testing.T) {
 		SyslogAddress: receiver.Address(),
 	}
 	logger, _ := config.GetLogger(nil)
-	generateLogs(logger, slog.LevelDebug, log.LevelNotice, 100)
+	generateLogs(t, logger, slog.LevelDebug, log.LevelNotice, 100)
 	receiver.Wait(100)
 }
 
@@ -60,7 +60,7 @@ func TestSyslogHanlder(t *testing.T) {
 	logger := slog.New(h)
 	logger = logger.With(slog.Group("test", slog.String("name", "SyslogPlainHandler")))
 	logger = logger.WithGroup("generate")
-	generateLogs(logger, slog.LevelDebug, log.LevelNotice, 100)
+	generateLogs(t, logger, slog.LevelDebug, log.LevelNotice, 100)
 }
 
 func TestSyslogLogEncodings(t *testing.T) {
@@ -84,7 +84,7 @@ func TestSyslogLogEncodings(t *testing.T) {
 			}
 			logger, _ := config.GetLogger(nil)
 			logger = logger.With(slog.String(log.SyslogKey, "ID47"))
-			generateLogs(logger, slog.LevelDebug, log.LevelNotice, 100)
+			generateLogs(t, logger, slog.LevelDebug, log.LevelNotice, 100)
 			receiver.Wait(100)
 		})
 	}
@@ -102,7 +102,7 @@ func TestSyslogUDP(t *testing.T) {
 	}
 	logger, _ := config.GetLogger(nil)
 	logger = logger.With(slog.String(log.SyslogKey, "ID47"))
-	generateLogs(logger, slog.LevelDebug, log.LevelNotice, 100)
+	generateLogs(t, logger, slog.LevelDebug, log.LevelNotice, 100)
 	receiver.Wait(100)
 }
 
@@ -117,7 +117,7 @@ func TestSyslogTLS(t *testing.T) {
 	}
 	logger, _ := config.GetLogger(nil)
 	logger = logger.With(slog.String(log.SyslogKey, "ID47"))
-	generateLogs(logger, slog.LevelDebug, log.LevelNotice, 100)
+	generateLogs(t, logger, slog.LevelDebug, log.LevelNotice, 100)
 	receiver.Wait(100)
 }
 

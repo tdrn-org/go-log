@@ -17,5 +17,5 @@ import (
 func TestRawHandler(t *testing.T) {
 	h := log.NewRawHandler(os.Stdout)
 	logger := slog.New(h)
-	generateLogs(logger, slog.LevelDebug, log.LevelNotice, 100)
+	generateLogs(t, logger, slog.LevelDebug, log.LevelNotice, 100)
 }

@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -54,6 +55,9 @@ type SyslogHandlerOptions struct {
 	// Facility defines the syslog facility to use
 	// (see https://datatracker.ietf.org/doc/html/rfc5424#section-6.2.1)
 	Facility int
+	// AppName defines the application or service name to use
+	// (see https://datatracker.ietf.org/doc/html/rfc5424#section-6.2.5)
+	AppName string
 }
 
 // SyslogHandler is used to emit log messages to a syslog server.
@@ -92,7 +96,7 @@ func NewSyslogHandler(w io.Writer, opts *SyslogHandlerOptions) *SyslogHandler {
 
 func (h *SyslogHandler) initHeader() *SyslogHandler {
 	host := syslogHostname()
-	appName := syslogAppName()
+	appName := syslogAppName(h.opts.AppName)
 	procID := syslogProcID()
 	switch h.opts.Encoding {
 	case SyslogEncodingRFC3164, SyslogEncodingRFC3164F:
@@ -344,9 +348,12 @@ func syslogHostname() string {
 	return host
 }
 
-func syslogAppName() string {
-	programName := os.Args[0]
-	appName := filepath.Base(programName)
+func syslogAppName(optsAppName string) string {
+	appName := strings.TrimSpace(optsAppName)
+	if appName != "" {
+		return appName
+	}
+	appName = filepath.Base(os.Args[0])
 	return appName
 }
 

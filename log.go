@@ -107,6 +107,9 @@ type Config struct {
 	// SyslogFaclity defines the syslog facility to use
 	// (see https://datatracker.ietf.org/doc/html/rfc5424#section-6.2.1)
 	SyslogFacility int
+	// SyslogAppName defines the application or service name to use
+	// (see https://datatracker.ietf.org/doc/html/rfc5424#section-6.2.5)
+	SyslogAppName string
 }
 
 // GetLevel determines the [slog.Level] defined by this configuration.
@@ -264,6 +267,7 @@ func (c *Config) getSyslogHandler(levelVar *slog.LevelVar) (slog.Handler, *slog.
 		},
 		Encoding: SyslogEncoding(c.SyslogEncoding),
 		Facility: c.SyslogFacility,
+		AppName:  c.SyslogAppName,
 	}
 	return NewSyslogHandler(w, opts), levelVar
 }

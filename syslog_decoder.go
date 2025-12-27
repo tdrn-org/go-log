@@ -301,7 +301,7 @@ func (m *UndecodedSyslogMessage) decodeSDParamValue(off int) (int, string) {
 	}
 }
 
-func (m *UndecodedSyslogMessage) decodeRFC3164(off int, facility int, priority int) SyslogMessage {
+func (m *UndecodedSyslogMessage) decodeRFC3164(off, facility, priority int) SyslogMessage {
 	decodeOff, timestamp := m.decodeTimestamp(off, time.Stamp, len(time.Stamp))
 	if decodeOff < 0 {
 		return m
@@ -343,7 +343,7 @@ func (m *UndecodedSyslogMessage) decodeRFC3164(off int, facility int, priority i
 	}
 }
 
-func (m *UndecodedSyslogMessage) decodeRFC5424(off int, facility int, priority int) SyslogMessage {
+func (m *UndecodedSyslogMessage) decodeRFC5424(off, facility, priority int) SyslogMessage {
 	decodeOff := m.decodeByte(off, '1')
 	if decodeOff < 0 {
 		return m

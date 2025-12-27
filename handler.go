@@ -54,7 +54,7 @@ func (b *messageBuilder) AppendConditional(s string) *messageBuilder {
 	return b
 }
 
-func (b *messageBuilder) CompleteConditional(yes string, no string) bool {
+func (b *messageBuilder) CompleteConditional(yes, no string) bool {
 	fired := b.conditional == ""
 	if fired {
 		b.AppendString(yes)

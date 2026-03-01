@@ -1,10 +1,10 @@
 module github.com/tdrn-org/go-log
 
-go 1.25
+go 1.26
 
 require (
 	github.com/mattn/go-isatty v0.0.20
-	github.com/tdrn-org/go-conf v0.0.4
+	github.com/tdrn-org/go-conf v0.0.5
 )
 
 require (
@@ -15,6 +15,6 @@ require (
 
 require (
 	github.com/stretchr/testify v1.11.1
-	github.com/tdrn-org/go-tlsconf v0.0.8
-	golang.org/x/sys v0.37.0 // indirect
+	github.com/tdrn-org/go-tlsconf v0.0.9
+	golang.org/x/sys v0.41.0 // indirect
 )

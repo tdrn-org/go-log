@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2023-2025 Holger de Carne
+// Copyright (C) 2023-2026 Holger de Carne
 //
 // This software may be modified and distributed under the terms
 // of the MIT license. See the LICENSE file for details.
@@ -21,6 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tdrn-org/go-conf"
 	"github.com/tdrn-org/go-log"
+	"github.com/tdrn-org/go-tlsconf"
 	"github.com/tdrn-org/go-tlsconf/tlsclient"
 	"github.com/tdrn-org/go-tlsconf/tlsserver"
 )
@@ -274,6 +275,6 @@ func (r *syslogUDPReceiver) Read() *syslogUDPReceiver {
 }
 
 func init() {
-	_ = tlsserver.SetOptions(tlsserver.UseEphemeralCertificate("localhost", tlsserver.CertificateAlgorithmDefault))
-	_ = tlsclient.SetOptions(tlsclient.AppendServerCertificates())
+	_ = tlsserver.SetOptions(tlsserver.UseEphemeralCertificate("localhost", tlsconf.CertificateAlgorithmDefault, time.Hour))
+	_ = tlsclient.SetOptions(tlsclient.AddServerConfigCertificates())
 }

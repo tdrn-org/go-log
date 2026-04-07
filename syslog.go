@@ -21,7 +21,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/tdrn-org/go-conf"
 	"github.com/tdrn-org/go-tlsconf/tlsclient"
 )
 
@@ -405,12 +404,7 @@ func (w *syslogWriter) dial() (net.Conn, error) {
 	case "udp", "udp4", "udp6", "tcp", "tcp4", "tcp6":
 		return net.Dial(w.network, w.address)
 	case "tcp+tls", "tcp4+tls", "tcp6+tls":
-		return tls.Dial(w.network[:(len(w.network)-len("+tls"))], w.address, w.tlsConfig())
+		return tls.Dial(w.network[:(len(w.network)-len("+tls"))], w.address, tlsclient.GetConfig())
 	}
 	return nil, fmt.Errorf("unrecognized syslog network options: '%s'", w.network)
-}
-
-func (w *syslogWriter) tlsConfig() *tls.Config {
-	tlsClientConfig, _ := conf.LookupConfiguration[*tlsclient.Config]()
-	return &tlsClientConfig.Config
 }

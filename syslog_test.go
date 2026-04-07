@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/tdrn-org/go-conf"
 	"github.com/tdrn-org/go-log"
 	"github.com/tdrn-org/go-tlsconf"
 	"github.com/tdrn-org/go-tlsconf/tlsclient"
@@ -170,8 +169,7 @@ type syslogTCPReceiver struct {
 func newSyslogTCPReceiver(t *testing.T, enableTLS bool) *syslogTCPReceiver {
 	var listener net.Listener
 	if enableTLS {
-		tlsServerConfig, _ := conf.LookupConfiguration[*tlsserver.Config]()
-		tlsListener, err := tls.Listen("tcp", syslogListenAddress, &tlsServerConfig.Config)
+		tlsListener, err := tls.Listen("tcp", syslogListenAddress, tlsserver.GetConfig())
 		require.NoError(t, err)
 		listener = tlsListener
 	} else {

@@ -3,7 +3,7 @@ module github.com/tdrn-org/go-log
 go 1.26
 
 require (
-	github.com/mattn/go-isatty v0.0.20
+	github.com/mattn/go-isatty v0.0.21
 	github.com/tdrn-org/go-conf v0.0.5
 )
 

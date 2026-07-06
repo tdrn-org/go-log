@@ -82,6 +82,8 @@ type Config struct {
 	FileSizeLimit int64
 	// SyslogNetwork defines the network to use for connecting
 	// to the syslog server. Possible valures are:
+	//	"unixgram"	// connect using unix datagram socket
+	// 	"unix"		// connect using unix stream socket
 	//	"udp"		// connect using udp
 	//	"udp4"		// connect using udp (IPv4 only)
 	//	"udp6"		// connect using udp (IPv6 only)
@@ -94,7 +96,8 @@ type Config struct {
 	// Defaults to "tcp"
 	SyslogNetwork string
 	// SyslogAddress defines the syslog server address to
-	// to connect to (host:port)
+	// to connect to (host:port for udp and tcp style connections
+	// and unix file path for unix socket based connections)
 	SyslogAddress string
 	// SyslogEncoding defines the syslog encoding to use.
 	// Supported formats are:

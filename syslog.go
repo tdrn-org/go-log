@@ -401,7 +401,7 @@ func (w *syslogWriter) dial() (net.Conn, error) {
 	switch w.network {
 	case "":
 		return net.Dial("tcp", w.address)
-	case "udp", "udp4", "udp6", "tcp", "tcp4", "tcp6":
+	case "udp", "udp4", "udp6", "tcp", "tcp4", "tcp6", "unixgram", "unix":
 		return net.Dial(w.network, w.address)
 	case "tcp+tls", "tcp4+tls", "tcp6+tls":
 		return tls.Dial(w.network[:(len(w.network)-len("+tls"))], w.address, tlsclient.GetConfig())

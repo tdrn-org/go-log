@@ -2,7 +2,7 @@ module github.com/tdrn-org/go-log
 
 go 1.26
 
-require github.com/mattn/go-isatty v0.0.23
+require github.com/mattn/go-isatty v0.0.24
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

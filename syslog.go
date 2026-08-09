@@ -333,7 +333,7 @@ func (h *SyslogHandler) initEncoder(quiet bool) *SyslogHandler {
 	case SyslogEncodingDefault:
 		h.opts.Encoding = SyslogEncodingRFC5424F
 		h.encode = h.encodeRFC5424
-	case SyslogEncodingRFC3164, SyslogEncodingRFC3164F:
+	case SyslogEncodingRFC3164, SyslogEncodingRFC3164F, SyslogEncodingLocal:
 		h.encode = h.encodeRFC3164
 	case SyslogEncodingRFC5424, SyslogEncodingRFC5424F:
 		h.encode = h.encodeRFC5424

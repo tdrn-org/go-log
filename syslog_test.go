@@ -38,7 +38,7 @@ func TestSyslogConfig(t *testing.T) {
 	receiver.Wait(100)
 }
 
-func TestSyslogHanlder(t *testing.T) {
+func TestSyslogHandler(t *testing.T) {
 	h := log.NewSyslogHandler(os.Stdout, &log.SyslogHandlerOptions{
 		HandlerOptions: slog.HandlerOptions{
 			AddSource: true,
@@ -54,7 +54,7 @@ func TestSyslogHanlder(t *testing.T) {
 				}
 			},
 		},
-		Encoding: log.SyslogEncodingDefault,
+		Encoding: log.SyslogEncodingRFC3164,
 		Facility: 99,
 	})
 	logger := slog.New(h)

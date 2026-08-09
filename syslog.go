@@ -41,6 +41,8 @@ const (
 	SyslogEncodingRFC5424 SyslogEncoding = "rfc5424"
 	// SyslogEncodingRFC3164 sets the format to RFC5424 + octet framing (https://datatracker.ietf.org/doc/html/rfc5224)
 	SyslogEncodingRFC5424F SyslogEncoding = "rfc5424+framing"
+	// SyslogEncodingLocal enables the format for local syslog sockets
+	SyslogEncodingLocal SyslogEncoding = "local"
 )
 
 const defaultSyslogFacility int = 16 // local0
@@ -100,6 +102,8 @@ func (h *SyslogHandler) initHeader() *SyslogHandler {
 	switch h.opts.Encoding {
 	case SyslogEncodingRFC3164, SyslogEncodingRFC3164F:
 		h.header = fmt.Sprintf(" %s %s[%s]: ", host, appName, procID)
+	case SyslogEncodingLocal:
+		h.header = fmt.Sprintf("%s[%s]: ", appName, procID)
 	default:
 		h.header = fmt.Sprintf(" %s %s %s ", host, appName, procID)
 	}
@@ -222,17 +226,20 @@ func (h *SyslogHandler) appendPRI(builder *messageBuilder, level slog.Level) {
 	}
 	builder.AppendString(strconv.Itoa(pri))
 	builder.AppendRune('>')
+	if h.opts.Encoding == SyslogEncodingLocal {
+		builder.AppendRune('\u0000')
+	}
 }
 
 func (h *SyslogHandler) appendTime(builder *messageBuilder, t time.Time) {
-	var layout string
 	switch h.opts.Encoding {
 	case SyslogEncodingRFC3164, SyslogEncodingRFC3164F:
-		layout = time.Stamp
+		builder.AppendString(t.Format(time.Stamp))
+	case SyslogEncodingLocal:
+		// no timestamp
 	default:
-		layout = time.RFC3339
+		builder.AppendString(t.Format(time.RFC3339))
 	}
-	builder.AppendString(t.Format(layout))
 }
 
 func (h *SyslogHandler) appendMsgID(builder *messageBuilder, record *slog.Record) {

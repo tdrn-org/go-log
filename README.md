@@ -4,4 +4,4 @@
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=tdrn-org_go-log&metric=coverage)](https://sonarcloud.io/summary/new_code?id=tdrn-org_go-log)
 
 ## License
-This project is subject to the the MIT License. See LICENSE information for details.
+This project is subject to the MIT License. See LICENSE information for details.

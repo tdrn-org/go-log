@@ -8,6 +8,8 @@ github.com/tdrn-org/go-conf v0.0.10 h1:wWM8MvpTYcJQJGX90N0c+tTYOawFbmbRDJwtd8zgN
 github.com/tdrn-org/go-conf v0.0.10/go.mod h1:1uuv293cjQs3aCufg/JV2kwParmExbuvKY9NIDAEPL8=
 github.com/tdrn-org/go-tlsconf v0.0.12 h1:o2LayL47FtaNzM4QjgYnHnlAvOb373zOsUbA1QSR0os=
 github.com/tdrn-org/go-tlsconf v0.0.12/go.mod h1:mfzcHAGoJ46LFfhHTfk9plFph0OrRpQk3eHV2uO/vDY=
+github.com/tdrn-org/go-tlsconf v0.0.15 h1:VscbpWYkvVY8fJf3ncGgFRRAmRQWTL1Uxr5JP9zRz2U=
+github.com/tdrn-org/go-tlsconf v0.0.15/go.mod h1:1iL49P7ov0OfD08T4rgL3BJ7Zw3UZRNK45PcWa26SgE=
 go.yaml.in/yaml/v3 v3.0.5 h1:N6y/pJk8buWs9NY5ERU2HSMfm+IuD/OtfdAnq6kESPw=
 go.yaml.in/yaml/v3 v3.0.5/go.mod h1:HVTZu1O7/Vkt2N+BFy8Zza+lnLsABggaTM2ZpNIGuKg=
 golang.org/x/sys v0.47.0 h1:o7XGOvZQCADBQQ4Y7VNq2dRWQR7JmOUW8Kxx4ZsNgWs=

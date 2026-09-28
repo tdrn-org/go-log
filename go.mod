@@ -2,6 +2,8 @@ module github.com/tdrn-org/go-log
 
 go 1.26.5
 
+toolchain go1.27.1
+
 require github.com/mattn/go-isatty v0.0.24
 
 require (

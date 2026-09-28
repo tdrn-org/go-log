@@ -4,6 +4,8 @@ github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWD
 github.com/stretchr/testify v1.12.1/go.mod h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg=
 github.com/tdrn-org/go-conf v0.0.8 h1:4zHHacpYDAqShfxdgWv9QiCnPRCsyWKSjx+GEAe0+Mw=
 github.com/tdrn-org/go-conf v0.0.8/go.mod h1:yiCoV6Icp3aReaNPa4Ok/FVNvhtYDt9AO+vPSv1OnQg=
+github.com/tdrn-org/go-conf v0.0.10 h1:wWM8MvpTYcJQJGX90N0c+tTYOawFbmbRDJwtd8zgN6c=
+github.com/tdrn-org/go-conf v0.0.10/go.mod h1:1uuv293cjQs3aCufg/JV2kwParmExbuvKY9NIDAEPL8=
 github.com/tdrn-org/go-tlsconf v0.0.12 h1:o2LayL47FtaNzM4QjgYnHnlAvOb373zOsUbA1QSR0os=
 github.com/tdrn-org/go-tlsconf v0.0.12/go.mod h1:mfzcHAGoJ46LFfhHTfk9plFph0OrRpQk3eHV2uO/vDY=
 go.yaml.in/yaml/v3 v3.0.5 h1:N6y/pJk8buWs9NY5ERU2HSMfm+IuD/OtfdAnq6kESPw=

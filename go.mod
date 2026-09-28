@@ -7,7 +7,7 @@ toolchain go1.27.1
 require github.com/mattn/go-isatty v0.0.24
 
 require (
-	github.com/tdrn-org/go-conf v0.0.8 // indirect
+	github.com/tdrn-org/go-conf v0.0.10 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 )
 
